@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>ESQUINA FATAL - the game</title>
+
+<style>
+    :root {
+        --asfalto: #1b1b1b;
+        --tijolo: #7a2e1d;
+        --tijolo-junta: #2a1512;
+        --spray-laranja: #ff5722;
+        --spray-amarelo: #f4d13a;
+        --giz: #eae4d6;
+        --azul-fita: #2f6fbd;
+    }
+    * { box-sizing: border-box; }
+    body {
+        background: var(--asfalto);
+        background-image:
+            radial-gradient(circle at 20% 20%, rgba(255,255,255,0.03) 0, transparent 3px),
+            radial-gradient(circle at 70% 60%, rgba(255,255,255,0.03) 0, transparent 3px),
+            radial-gradient(circle at 40% 80%, rgba(255,255,255,0.02) 0, transparent 4px);
+        background-size: 40px 40px, 55px 55px, 30px 30px;
+        color: var(--giz);
+        font-family: 'Special Elite', 'Roboto Mono', monospace;
+        margin: 0; padding: 20px;
+        display: flex; justify-content: center;
+    }
+    .game {
+        width: 950px;
+        background:
+            repeating-linear-gradient(0deg, var(--tijolo) 0 26px, var(--tijolo-junta) 26px 30px),
+            repeating-linear-gradient(90deg, transparent 0 78px, rgba(0,0,0,0.35) 78px 82px);
+        padding: 22px;
+        border: 6px solid #000;
+        border-radius: 2px;
+        box-shadow: 0 0 0 4px var(--spray-amarelo), 0 20px 50px rgba(0,0,0,0.7);
+        position: relative;
+    }
+    .fita {
+        position: absolute; top: -10px; left: -6px; right: -6px; height: 26px;
+        background: repeating-linear-gradient(45deg, var(--spray-amarelo) 0 20px, #111 20px 40px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    }
+    h1 {
+        text-align: center; color: var(--spray-laranja);
+        font-family: 'Bangers', cursive; letter-spacing: 5px; font-size: 54px;
+        text-shadow: 3px 3px 0 #000, -1px -1px 0 var(--spray-amarelo);
+        transform: rotate(-2deg); margin-top: 20px;
+    }
+    .subtitulo { text-align: center; color: var(--spray-amarelo); font-family: 'Permanent Marker', cursive; margin-top: -10px; font-size: 18px; }
+
+    .menu-principal { text-align: center; padding: 40px 20px; background: rgba(0,0,0,0.55); border: 3px dashed var(--spray-amarelo); margin-top: 10px; }
+    .menu-principal button, .setup-btn {
+        display: block; width: 320px; margin: 18px auto; padding: 16px;
+        background: var(--spray-laranja); color: #111;
+        border: 3px solid #000; font-size: 20px; font-weight: bold; cursor: pointer;
+        font-family: 'Permanent Marker', cursive; letter-spacing: 1px;
+        transform: rotate(-1deg);
+        box-shadow: 4px 4px 0 #000;
+        transition: transform 0.1s;
+    }
+    .menu-principal button:hover, .setup-btn:hover { transform: rotate(0deg) scale(1.03); }
+
+    #setup { padding: 30px 20px; background: rgba(0,0,0,0.55); border: 3px dashed var(--azul-fita); margin-top: 10px; }
+    #setup h1 { font-size: 30px; }
+    .input-area { margin-top: 15px; display: flex; gap: 10px; }
+    .input-area input {
+        flex: 1; padding: 12px; background: #111; color: var(--giz);
+        border: 3px solid var(--azul-fita); font-family: 'Roboto Mono', monospace; font-size: 15px;
+    }
+    .input-area button {
+        padding: 12px 25px; background: var(--azul-fita); color: white;
+        border: 3px solid #000; font-weight: bold; cursor: pointer; font-family: 'Permanent Marker', cursive;
+    }
+
+    .arena {
+        position: relative; height: 520px; margin: 20px 0;
+        background: linear-gradient(180deg, #3a3a3a 0%, #262626 60%, #1a1a1a 100%);
+        border: 5px solid #000;
+        overflow: hidden;
+        box-shadow: inset 0 0 60px rgba(0,0,0,0.8);
+    }
+    .arena::after {
+        content: ""; position: absolute; inset: 0;
+        background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 60px);
+        pointer-events: none;
+    }
+    .parede-grafite {
+        position: absolute; bottom: 0; left: 0; right: 0; height: 90px;
+        background: repeating-linear-gradient(90deg, #333 0 100px, #2b2b2b 100px 200px);
+        border-top: 4px solid #000;
+    }
+
+    .menu-jogo { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 9px; z-index: 10; }
+    .menu-btn {
+        background: var(--azul-fita); color: white; border: 2px solid #000;
+        padding: 12px 16px; width: 235px; font-weight: bold; cursor: pointer;
+        font-family: 'Special Elite', monospace; text-align: left; font-size: 13px;
+        box-shadow: 3px 3px 0 #000; border-radius: 2px;
+        display: flex; align-items: center; gap: 10px;
+        transition: transform 0.08s, box-shadow 0.08s;
+        letter-spacing: 0.5px;
+    }
+    .menu-btn .icone-btn { font-size: 17px; }
+    .menu-btn:hover:not(:disabled) { background: #3d84e0; }
+    .menu-btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 0 0 0 #000; }
+    .menu-btn:disabled { background: #3a3a3a; color: #777; cursor: not-allowed; box-shadow: none; border-color: #222; }
+    .menu-btn.ataque { background: var(--spray-laranja); color: #111; }
+    .menu-btn.ataque:hover:not(:disabled) { background: #ff7847; }
+    .menu-btn.utilidade { background: #4a4a4a; }
+    .menu-btn.utilidade:hover:not(:disabled) { background: #5c5c5c; }
+    .restart-btn { background: #b3261e !important; color: white; }
+    .restart-btn:hover:not(:disabled) { background: #d1362c !important; }
+
+    .personagem { position: absolute; display: flex; flex-direction: column; align-items: center; z-index: 5; }
+    .player-container { bottom: 70px; left: 300px; }
+    .enemy-container { top: 90px; right: 90px; }
+    .stickman { width: 90px; height: 150px; }
+    .stickman svg { fill: none; stroke: var(--giz); stroke-width: 8; stroke-linecap: round; }
+    .stickman.enemy svg { stroke: #ffb37a; }
+    .stickman.sprite-player { width: auto; height: 310px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -18px; }
+    .stickman.sprite-player img {
+        max-height: 310px; width: auto;
+        image-rendering: pixelated; image-rendering: crisp-edges;
+        filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
+    }
+    .stickman.sprite-enemy { height: 150px; display: flex; align-items: flex-end; justify-content: center; }
+    .stickman.sprite-enemy img {
+        max-height: 150px; width: auto;
+        image-rendering: pixelated; image-rendering: crisp-edges;
+        filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
+    }
+    .shadow { width: 110px; height: 16px; background: rgba(0,0,0,0.6); border-radius: 50%; margin-top: -6px; filter: blur(1px); }
+
+    .vida { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+    .player-container .vida { margin: -34px 0 0 0; }
+    .coracao { color: var(--spray-laranja); font-size: 22px; }
+    .barra { width: 220px; height: 26px; border: 3px solid #000; background: #111; }
+    .barra-preenchida { height: 100%; background: linear-gradient(90deg, var(--spray-laranja), var(--spray-amarelo)); color: #111; font-weight: bold; padding-left: 8px; display: flex; align-items: center; transition: width 0.3s; font-size: 13px; }
+
+    .cena-texto {
+        position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%) rotate(-4deg);
+        font-size: 34px; font-weight: bold; color: var(--spray-amarelo);
+        font-family: 'Bangers', cursive; opacity: 0; transition: opacity 0.5s;
+        text-shadow: 3px 3px 0 #000; letter-spacing: 2px;
+        z-index: 20;
+    }
+    .ataque-texto {
+        top: 22%; color: var(--spray-laranja);
+        font-size: 34px; transform: translate(-50%, -50%) rotate(3deg);
+        z-index: 21; text-shadow: 3px 3px 0 #000, -1px -1px 0 #000;
+    }
+    .aviso-texto {
+        top: 70%; color: var(--giz);
+        font-size: 22px; transform: translate(-50%, -50%) rotate(-1deg);
+        text-shadow: 2px 2px 0 #000; z-index: 22;
+        background: rgba(0,0,0,0.55); padding: 6px 16px; border-radius: 2px;
+        white-space: nowrap;
+    }
+
+    #itemArea { margin-top: 12px; background: rgba(0,0,0,0.5); border: 3px dashed var(--azul-fita); padding: 10px; }
+    #itemArea h3 { margin: 4px 0 10px; color: var(--spray-amarelo); font-family: 'Permanent Marker', cursive; }
+    .item-botoes { display: flex; gap: 10px; flex-wrap: wrap; }
+    .item-btn {
+        flex: 1; min-width: 200px; padding: 14px; background: #2b2b2b; color: var(--giz);
+        border: 3px solid var(--azul-fita); font-weight: bold; cursor: pointer; text-align: left;
+        font-family: 'Special Elite', monospace; box-shadow: 3px 3px 0 #000;
+    }
+    .item-btn:disabled { background: #1a1a1a; color: #555; border-color: #333; cursor: not-allowed; box-shadow: none; }
+    .item-icone { font-size: 22px; margin-right: 8px; }
+    .item-qtd { font-size: 11px; color: #aaa; display: block; margin-top: 4px; }
+    .voltar-btn { background: #444; border-color: #888; text-align: center; }
+
+    #creditos { text-align: center; padding: 30px; background: rgba(0,0,0,0.55); border: 3px dashed var(--spray-amarelo); margin-top: 10px; }
+
+:root{
+  --mc-dark:#171717; --mc-panel:#3b3b3b; --mc-panel2:#555; --mc-border:#111;
+  --mc-green:#55a630; --mc-green2:#3d7c25; --mc-brown:#8b5a2b; --mc-dirt:#6b4525;
+  --mc-stone:#777; --mc-light:#d8d8d8; --mc-gold:#f5c542; --mc-red:#b92b2b;
+}
+html,body{min-height:100%;}
+body{
+  padding:0; min-height:100vh; align-items:center;
+  background:#87c9e8;
+  background-image:
+    linear-gradient(rgba(255,255,255,.18) 2px,transparent 2px),
+    linear-gradient(90deg,rgba(255,255,255,.18) 2px,transparent 2px),
+    linear-gradient(#87c9e8 0 62%,#6da84b 62% 100%);
+  background-size:32px 32px,32px 32px,100% 100%;
+  font-family:'Roboto Mono',monospace;
+  image-rendering:pixelated;
+}
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.14;
+  background-image:radial-gradient(#000 1px,transparent 1px);background-size:5px 5px;
+}
+.game{
+  width:min(1100px,96vw); padding:18px; margin:18px auto;
+  background:linear-gradient(#6b4525 0 30px,#8b5a2b 30px 100%);
+  border:5px solid #202020; border-radius:0;
+  box-shadow:0 0 0 3px #999, 12px 12px 0 rgba(0,0,0,.35);
+}
+.game:before{
+  content:"";position:absolute;left:0;right:0;top:0;height:30px;
+  background:repeating-linear-gradient(90deg,#4c8b2b 0 45px,#5da934 45px 90px);
+  border-bottom:4px solid #315c20;
+}
+.fita{display:none}
+h1{
+  font-family:'Roboto Mono',monospace; font-weight:900; font-size:clamp(30px,5vw,54px);
+  letter-spacing:2px; transform:none; color:#fff; margin:28px 0 10px;
+  text-shadow:4px 4px 0 #333, 7px 7px 0 rgba(0,0,0,.25);
+}
+.subtitulo{font-family:'Roboto Mono',monospace;color:#fff;font-size:14px;text-shadow:2px 2px #333}
+.menu-principal,#setup,#creditos{
+  background:#3b3b3b; border:4px solid #171717; border-radius:0; margin-top:15px;
+  box-shadow:inset 0 0 0 3px #777,6px 6px 0 rgba(0,0,0,.35);
+}
+.menu-principal{padding:36px 20px}
+.menu-principal button,.setup-btn{
+  width:min(360px,90%); margin:14px auto; padding:15px 18px;
+  background:#707070; color:#fff; border:4px solid #1a1a1a; border-top-color:#aaa; border-left-color:#aaa;
+  box-shadow:inset -4px -4px 0 #3a3a3a,5px 5px 0 #111;
+  font-family:'Roboto Mono',monospace; font-size:16px; font-weight:900; transform:none; text-shadow:2px 2px #222;
+}
+.menu-principal button:hover,.setup-btn:hover{transform:none;background:#818181}
+.menu-principal button:active,.setup-btn:active{box-shadow:inset 4px 4px 0 #333;transform:translate(3px,3px)}
+#setup{padding:25px 20px}
+#setup h1{font-size:22px}
+.input-area{display:flex;gap:12px;flex-wrap:wrap}
+.input-area input{min-width:220px;padding:14px;background:#1d1d1d;color:#fff;border:4px solid #111;outline:3px solid #777;font-family:'Roboto Mono';font-weight:bold}
+.input-area button{padding:13px 22px;background:#55a630;color:#fff;border:4px solid #234916;box-shadow:inset -4px -4px 0 #376b20,4px 4px #111;font-family:'Roboto Mono';font-weight:900}
+.arena{
+  height:570px;margin:18px 0;background:
+    linear-gradient(rgba(0,0,0,.08),rgba(0,0,0,.2)),
+    repeating-linear-gradient(0deg,transparent 0 47px,rgba(0,0,0,.18) 47px 50px),
+    repeating-linear-gradient(90deg,#7d7d7d 0 47px,#6e6e6e 47px 50px);
+  border:5px solid #171717; box-shadow:inset 0 0 0 3px #aaa,inset 0 -120px 0 #4e4e4e;
+}
+.arena:before{content:"";position:absolute;left:0;right:0;bottom:86px;height:10px;background:#222;z-index:2}
+.arena:after{content:"";position:absolute;left:0;right:0;bottom:0;height:88px;background:repeating-linear-gradient(90deg,#3f7728 0 40px,#4b8b2e 40px 80px);border-top:5px solid #2d551e}
+.parede-grafite{bottom:88px;height:110px;background:repeating-linear-gradient(90deg,#777 0 92px,#696969 92px 96px),repeating-linear-gradient(0deg,transparent 0 44px,rgba(0,0,0,.2) 44px 48px);border-top:4px solid #222}
+.menu-jogo{top:12px;left:12px;gap:7px}
+.menu-btn{
+  width:255px;padding:11px 13px;background:#707070;color:#fff;border:4px solid #181818;
+  border-top-color:#aaa;border-left-color:#aaa;border-radius:0;box-shadow:inset -4px -4px 0 #3a3a3a,4px 4px #111;
+  font-family:'Roboto Mono';font-size:12px;text-shadow:2px 2px #222;
+}
+.menu-btn:hover:not(:disabled){background:#818181}
+.menu-btn:active:not(:disabled){transform:translate(3px,3px);box-shadow:inset 3px 3px #333}
+.menu-btn.ataque{background:#8f8f8f;color:#fff}.menu-btn.ataque:hover:not(:disabled){background:#a0a0a0}
+.menu-btn.utilidade{background:#5f7f4c}.menu-btn.utilidade:hover:not(:disabled){background:#6d9258}
+.restart-btn{background:#8d3030!important}.restart-btn:hover:not(:disabled){background:#a33a3a!important}
+.personagem{z-index:5}
+.player-container{bottom:78px;left:31%}.enemy-container{top:125px;right:11%}
+.stickman.sprite-player img{filter:drop-shadow(4px 5px 0 #222)}
+.stickman.sprite-enemy img{filter:drop-shadow(4px 5px 0 #222)}
+.shadow{background:#222;border-radius:0;filter:none;height:12px}
+.vida{padding:5px 7px;background:#252525;border:3px solid #111;box-shadow:inset 0 0 0 2px #666;gap:6px}
+.coracao{font-size:18px}.barra{width:190px;height:23px;border:3px solid #111;background:#222}
+.barra-preenchida{background:linear-gradient(#67c23a,#3d8d22);color:#fff;text-shadow:1px 1px #222;padding-left:5px}
+.cena-texto,.ataque-texto{font-family:'Roboto Mono';font-weight:900;text-transform:uppercase;text-shadow:4px 4px #222,-2px -2px #222;transform:translate(-50%,-50%);letter-spacing:1px}
+.cena-texto{font-size:28px;color:#fff}.ataque-texto{font-size:28px;color:#f0c83c}
+.aviso-texto{font-family:'Roboto Mono';background:#252525;border:3px solid #111;box-shadow:4px 4px #111;padding:8px 14px;border-radius:0;font-size:14px}
+#itemArea{margin-top:12px;background:#3b3b3b;border:4px solid #171717;padding:12px;box-shadow:inset 0 0 0 3px #777,5px 5px #111}
+#itemArea h3{color:#fff;font-family:'Roboto Mono';font-size:16px}
+.item-botoes{gap:9px}.item-btn{min-width:200px;padding:12px;background:#707070;color:#fff;border:4px solid #1b1b1b;border-top-color:#aaa;border-left-color:#aaa;box-shadow:inset -4px -4px #3b3b3b,4px 4px #111;font-family:'Roboto Mono'}
+.item-btn:disabled{background:#3d3d3d;color:#777;border-color:#222;box-shadow:none}.item-qtd{color:#ddd}
+.voltar-btn{background:#555;border-color:#888}
+#creditos{padding:28px;color:#fff}
+@media(max-width:700px){
+ .game{width:100%;margin:0;padding:10px}.arena{height:590px}.menu-btn{width:210px;font-size:10px}.player-container{left:24%}.enemy-container{right:4%}.stickman.sprite-player{height:250px}.stickman.sprite-player img{max-height:250px}.stickman.sprite-enemy{height:120px}.stickman.sprite-enemy img{max-height:120px}.barra{width:130px}
+}
+
+
+
+.menu-principal button,
+.setup-btn,
+.input-area button,
+.menu-btn,
+.item-btn{
+  position:relative;
+  box-sizing:border-box;
+  min-height:52px;
+  padding:12px 18px;
+  border:3px solid #1b1b1b;
+  border-top-color:#d0d0d0;
+  border-left-color:#d0d0d0;
+  border-radius:2px;
+  background:#777;
+  color:#fff;
+  font-family:'Roboto Mono',monospace;
+  font-weight:900;
+  letter-spacing:.4px;
+  text-shadow:2px 2px 0 #333;
+  box-shadow:inset 0 -4px 0 #4a4a4a, inset 0 2px 0 rgba(255,255,255,.12), 4px 4px 0 #111;
+  transform:none;
+  transition:none;
+}
+.menu-principal button:hover,
+.setup-btn:hover,
+.input-area button:hover,
+.menu-btn:hover:not(:disabled),
+.item-btn:hover:not(:disabled){
+  background:#8a8a8a;
+  border-top-color:#eee;
+  border-left-color:#eee;
+  box-shadow:inset 0 -4px 0 #555, inset 0 2px 0 rgba(255,255,255,.18), 4px 4px 0 #111;
+}
+.menu-principal button:active,
+.setup-btn:active,
+.input-area button:active,
+.menu-btn:active:not(:disabled),
+.item-btn:active:not(:disabled){
+  transform:translate(3px,3px);
+  border-top-color:#4a4a4a;
+  border-left-color:#4a4a4a;
+  border-right-color:#d0d0d0;
+  border-bottom-color:#d0d0d0;
+  box-shadow:inset 0 3px 0 #333, 1px 1px 0 #111;
+}
+.menu-btn.ataque{background:#777;color:#fff}
+.menu-btn.ataque:hover:not(:disabled){background:#8a8a8a}
+.menu-btn.utilidade{background:#777;color:#fff}
+.menu-btn.utilidade:hover:not(:disabled){background:#8a8a8a}
+.restart-btn{background:#777!important}
+.restart-btn:hover:not(:disabled){background:#8a8a8a!important}
+.input-area button{background:#5b9638;border-color:#244b18;border-top-color:#a8d28e;border-left-color:#a8d28e;box-shadow:inset 0 -4px 0 #386b22,4px 4px #111}
+.input-area button:hover{background:#69aa42}
+.menu-principal button::after,
+.setup-btn::after,
+.menu-btn::after,
+.item-btn::after{
+  content:"";
+  position:absolute;
+  inset:3px;
+  pointer-events:none;
+  border:1px solid rgba(255,255,255,.08);
+}
+.menu-principal button .icone-btn,
+.menu-btn .icone-btn{font-size:18px;vertical-align:-2px;margin-right:6px;filter:none}
+.item-btn{min-width:200px}
+.item-btn:disabled{background:#4b4b4b;color:#999;border-top-color:#666;border-left-color:#666;box-shadow:inset 0 -4px 0 #292929;opacity:1}
+
+</style>
+<style id="bottom-minecraft-buttons">.arena{position:relative;padding-bottom:105px}.menu-jogo{position:absolute!important;top:auto!important;bottom:12px!important;left:50%!important;transform:translateX(-50%)!important;width:min(96%,900px);display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;z-index:20;padding:8px;background:rgba(35,35,35,.94);border:4px solid #111;box-shadow:inset 0 0 0 3px #777,5px 5px 0 #111}.menu-btn{width:170px!important;min-height:48px;padding:10px 12px!important;margin:0!important;background:#707070!important;color:#fff!important;border:3px solid #1b1b1b!important;border-top-color:#aaa!important;border-left-color:#aaa!important;border-radius:0!important;box-shadow:inset -4px -4px 0 #3b3b3b,3px 3px 0 #111!important;font-family:'Roboto Mono',monospace!important;font-weight:900!important;font-size:11px!important;text-shadow:2px 2px #222;cursor:pointer}.menu-btn:hover:not(:disabled){background:#858585!important}.menu-btn:active:not(:disabled){transform:translate(3px,3px)!important;box-shadow:inset 3px 3px 0 #333!important}.menu-btn.utilidade{background:#5f7f4c!important}.restart-btn{background:#8d3030!important}@media(max-width:700px){.menu-jogo{width:94%;bottom:8px!important;gap:5px;padding:6px}.menu-btn{width:145px!important;min-height:42px;font-size:9px!important;padding:8px 6px!important}}</style>
+
+<style id="minecraft-inventory-buttons">
+
+.arena{padding-bottom:105px;}
+.menu-jogo{
+  position:absolute !important;
+  left:50% !important;
+  bottom:12px !important;
+  top:auto !important;
+  transform:translateX(-50%) !important;
+  width:auto !important;
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  gap:0 !important;
+  padding:5px !important;
+  background:#1b1b1b !important;
+  border:4px solid #080808 !important;
+  box-shadow:inset 0 0 0 3px #777, 0 4px 0 #000 !important;
+  z-index:30 !important;
+}
+.menu-btn{
+  box-sizing:border-box !important;
+  width:76px !important;
+  height:62px !important;
+  min-height:62px !important;
+  margin:0 !important;
+  padding:4px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:center !important;
+  align-items:center !important;
+  gap:1px !important;
+  background:#8b8b8b !important;
+  color:#fff !important;
+  border:3px solid #373737 !important;
+  border-top-color:#c6c6c6 !important;
+  border-left-color:#c6c6c6 !important;
+  border-radius:0 !important;
+  box-shadow:inset 0 0 0 2px #555 !important;
+  font-family:'Roboto Mono',monospace !important;
+  font-size:8px !important;
+  font-weight:900 !important;
+  line-height:1.05 !important;
+  text-align:center !important;
+  text-shadow:1px 1px #222 !important;
+  cursor:pointer;
+  transition:none !important;
+}
+.menu-btn .icone-btn{
+  font-size:23px !important;
+  line-height:24px !important;
+  text-shadow:2px 2px #333 !important;
+}
+.menu-btn:hover:not(:disabled){
+  background:#9b9b9b !important;
+  outline:2px solid #fff;
+  outline-offset:-4px;
+}
+.menu-btn:active:not(:disabled){
+  transform:none !important;
+  background:#696969 !important;
+  border-top-color:#373737 !important;
+  border-left-color:#373737 !important;
+  border-bottom-color:#c6c6c6 !important;
+  border-right-color:#c6c6c6 !important;
+  box-shadow:inset 3px 3px 0 #333 !important;
+}
+.menu-btn.ataque,.menu-btn.utilidade,.restart-btn{
+  background:#8b8b8b !important;
+  color:#fff !important;
+}
+.menu-btn.ataque:hover:not(:disabled),.menu-btn.utilidade:hover:not(:disabled),.restart-btn:hover:not(:disabled){
+  background:#9b9b9b !important;
+}
+.menu-btn:disabled{
+  background:#454545 !important;
+  color:#777 !important;
+  opacity:.7;
+}
+@media(max-width:700px){
+  .menu-jogo{bottom:7px !important; padding:4px !important;}
+  .menu-btn{width:56px !important;height:55px !important;min-height:55px !important;font-size:6px !important;}
+  .menu-btn .icone-btn{font-size:19px !important;line-height:20px !important;}
+}
+</style>
+
+<style id="esquina-fatal-pixel-battle">
+:root{color-scheme:dark;--ui-ink:#07101e;--ui-panel:#101a2a;--ui-white:#f4f6ff;--ui-red:#ef4255;--ui-blue:#4c75d6;--ui-green:#10b995;}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;width:100%;}
+body{padding:0;display:block;align-items:initial;justify-content:initial;background:#070e20;color:var(--ui-white);font-family:Consolas,"Courier New",monospace;image-rendering:pixelated;overflow-x:hidden;}
+body:before{content:none!important}
+.game{width:100%;max-width:1600px;min-height:100vh;margin:0 auto;padding:0;background:none;border:0;border-radius:0;box-shadow:none;position:relative;}
+.fita{display:none!important}
+#menuPrincipal,#setup,#creditos{width:min(94%,760px);margin:5vh auto 0;padding:28px;background:rgba(8,15,29,.94);border:5px solid #e9edff;box-shadow:0 0 0 5px #101522,8px 8px 0 #000;border-radius:0;}
+h1{font-family:Consolas,"Courier New",monospace;font-weight:900;font-size:clamp(30px,5vw,56px);letter-spacing:2px;transform:none;color:#fff;margin:14px 0;text-shadow:4px 4px #101522,-1px -1px #101522;}
+.subtitulo{font-family:Consolas,"Courier New",monospace;color:#a7c2ff;margin:0 0 18px;font-size:18px;text-shadow:2px 2px #111;}
+.menu-principal button,.setup-btn{width:min(100%,350px);display:block;margin:13px auto;padding:16px 20px;background:#293b59;color:white;border:4px solid #dce5ff;border-right-color:#52617e;border-bottom-color:#52617e;box-shadow:inset 0 0 0 3px #121b2b,4px 4px 0 #000;font:900 18px Consolas,"Courier New",monospace;letter-spacing:.5px;transform:none;}
+.menu-principal button:first-of-type{background:#c62f46;border-color:#ff7b86;border-bottom-color:#6c1729;border-right-color:#6c1729;}
+.menu-principal button:hover,.setup-btn:hover{transform:translateY(-2px);filter:brightness(1.12)}
+#setup h1{font-size:clamp(22px,3vw,36px)}
+.input-area{display:flex;flex-wrap:wrap;margin-top:20px;gap:10px}
+.input-area input{min-width:180px;background:#0b1322;color:#fff;border:4px solid #7183b0;font-family:Consolas,"Courier New",monospace;}
+.input-area button{background:#236e9d;color:#fff;border:4px solid #b2dcff;font-family:Consolas,"Courier New",monospace;font-weight:900;}
+#jogo.battle-screen{display:block;width:100%;}
+.arena{position:relative!important;width:100%;height:min(100vh,1024px)!important;min-height:650px!important;margin:0!important;overflow:hidden!important;border:0!important;border-radius:0!important;padding:0!important;background:#111d3a url("assets/arena-noite.jpg") center center/100% 100% no-repeat!important;box-shadow:none!important;isolation:isolate;}
+.arena:before,.arena:after{content:none!important;display:none!important}
+.parede-grafite{display:none!important}
+.scene-tint{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,12,36,.02) 0%,rgba(5,10,24,.02) 52%,rgba(5,9,20,.16) 74%,rgba(3,7,18,.28) 100%);}
+.enemy-character,.player-character{position:absolute;z-index:3;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;filter:drop-shadow(4px 5px 0 rgba(0,0,0,.38));}
+.enemy-character{top:11%;right:13%;width:clamp(190px,24vw,350px);height:clamp(270px,40vh,420px);}
+.player-character{left:9%;bottom:28%;width:clamp(215px,28vw,400px);height:clamp(285px,45vh,465px);}
+.enemy-character img,.player-character img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges;}
+.player-character img{height:100%;}
+.enemy-character img{height:100%;}
+.hud-panel{position:absolute;z-index:8;width:42%;padding:12px 19px 14px;background:linear-gradient(145deg,rgba(13,22,39,.98),rgba(8,15,29,.97));border:5px solid #f2f4ff;outline:4px solid #0a0d18;box-shadow:inset 0 0 0 3px #28354b,5px 5px 0 rgba(0,0,0,.5);color:#fff;}
+.enemy-hud{top:6.5%;left:3.1%;}
+.player-hud{right:2.3%;bottom:30%;}
+.hud-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:clamp(20px,2.9vw,44px);font-weight:900;line-height:1.12;white-space:nowrap;text-shadow:2px 2px #111;}
+.hud-stats{display:flex;align-items:center;gap:clamp(6px,1vw,15px);margin-top:9px;min-width:0;}
+.type-tag{flex:0 0 auto;border:3px solid #b2b7c3;background:#777e8d;color:white;padding:3px 8px;font-size:clamp(10px,1.2vw,17px);font-weight:900;line-height:1;text-shadow:1px 2px #333;box-shadow:inset 2px 2px 0 #c8cbd3,inset -2px -2px 0 #454955;}
+.hp-label{font-family:Consolas,"Courier New",monospace;color:#ff9e16;font-weight:900;font-size:clamp(18px,2.2vw,32px);text-shadow:2px 2px #241b13;}
+.hp-track{flex:1;min-width:30px;height:clamp(20px,2.4vw,32px);border:4px solid #05080e;background:#070a10;box-shadow:0 0 0 2px #8f99aa;overflow:hidden;}
+.hp-fill{width:100%;height:100%;background:linear-gradient(180deg,#20e18a 0%,#00b969 65%,#00995c 100%);border-top:2px solid #b8ffe1;transition:width .25s steps(8,end);}
+.hp-current{display:none;font-size:13px;white-space:nowrap;}
+.hp-number{text-align:right;font-size:clamp(19px,2.5vw,38px);font-weight:900;line-height:1.1;margin-top:5px;text-shadow:2px 2px #10131c;}
+.battle-bottom-ui{position:absolute;z-index:20;left:1%;right:1%;bottom:1.2%;height:24%;min-height:165px;display:grid;grid-template-columns:43% 57%;align-items:stretch;}
+.dialogue-panel,.action-panel{background:rgba(9,17,31,.97);border:5px solid #eef1ff;outline:3px solid #0c101b;box-shadow:inset 0 0 0 3px #25324b,5px 5px 0 rgba(0,0,0,.6);min-width:0;min-height:0;}
+.dialogue-panel{position:relative;padding:clamp(16px,2.5vw,36px);display:flex;align-items:center;}
+.dialogue-copy{font-size:clamp(17px,2.5vw,35px);line-height:1.45;font-weight:800;letter-spacing:.1px;text-shadow:2px 2px #10131d;max-width:95%;}
+.dialogue-caret{position:absolute;right:17px;bottom:14px;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:16px solid #dce4ff;filter:drop-shadow(2px 2px #111);animation:caretPulse .9s steps(2,end) infinite;}
+@keyframes caretPulse{50%{opacity:.35}}
+.action-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:8px;padding:8px;}
+.menu-btn.action-btn{position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;transform:none!important;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;padding:8px 10px!important;display:flex!important;flex-direction:row!important;justify-content:center!important;align-items:center!important;gap:clamp(7px,1.1vw,17px)!important;white-space:nowrap;border:4px solid currentColor!important;border-radius:7px!important;font-family:Consolas,"Courier New",monospace!important;font-size:clamp(14px,2.1vw,31px)!important;font-weight:900!important;line-height:1.1!important;color:#fff!important;text-align:center!important;text-shadow:3px 3px #151727!important;box-shadow:inset 0 0 0 3px rgba(255,255,255,.08),inset 0 -5px 0 rgba(0,0,0,.3)!important;letter-spacing:-.6px;cursor:pointer!important;}
+.menu-btn.action-btn .action-icon{flex:0 0 auto;font-family:Arial,sans-serif;font-size:clamp(26px,3.6vw,53px)!important;line-height:1!important;text-shadow:3px 3px #121624!important;}
+.menu-btn.action-punch{grid-column:1;grid-row:1;background:linear-gradient(135deg,#8d1932,#451626)!important;color:#ff5267!important;border-color:#ff5369!important;box-shadow:inset 0 0 0 3px #3e101b,inset 0 -5px 0 #350d19!important;}
+.menu-btn.action-combo{grid-column:2;grid-row:1;background:linear-gradient(135deg,#1c3b82,#111d45)!important;color:#6e9cff!important;border-color:#557bd9!important;}
+.menu-btn.action-items{grid-column:1;grid-row:2;background:linear-gradient(135deg,#075949,#07372f)!important;color:#2fe0bb!important;border-color:#10b995!important;}
+.action-btn span:last-child{color:#fff!important;}
+.menu-btn.action-btn:hover:not(:disabled){filter:brightness(1.18);outline:3px solid rgba(255,255,255,.7);outline-offset:-8px;background-blend-mode:screen;}
+.menu-btn.action-btn:active:not(:disabled){filter:brightness(.86);transform:translate(2px,2px)!important;}
+.menu-btn.action-btn:disabled{opacity:.55;filter:grayscale(.7);cursor:not-allowed!important;}
+.item-menu-overlay{position:absolute;z-index:30;right:1%;bottom:1.2%;width:55.5%;height:24%;min-height:165px;padding:14px;background:rgba(9,17,31,.98);border:5px solid #eef1ff;outline:3px solid #0c101b;box-shadow:inset 0 0 0 3px #25324b,5px 5px 0 rgba(0,0,0,.65);}
+.item-menu-overlay h3{margin:0 0 10px;font-size:clamp(13px,1.5vw,21px);color:#7ce6ce;}
+.item-botoes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:calc(100% - 34px);overflow:auto;}
+.item-btn{min-width:0!important;padding:9px!important;background:#1b2d43!important;color:#fff!important;border:3px solid #6f8fbe!important;box-shadow:inset 0 0 0 2px #101c2d,3px 3px #05080f!important;font:700 clamp(10px,1.1vw,15px) Consolas,"Courier New",monospace!important;text-align:left!important;}
+.item-btn:disabled{background:#252d38!important;color:#777!important;opacity:.6;}
+.item-icone{font-size:20px;margin-right:4px;}
+.voltar-btn{background:#444!important;text-align:center!important;}
+.cena-texto{z-index:15;top:47%;left:50%;transform:translate(-50%,-50%);font-family:Consolas,"Courier New",monospace;font-size:clamp(20px,3vw,42px);font-weight:900;color:#fff;text-shadow:4px 4px #111, -2px -2px #111;opacity:0;}
+.ataque-texto{top:32%;font-size:clamp(22px,3.4vw,46px);color:#ff596e;}
+.aviso-texto{top:57%;font-size:clamp(12px,1.6vw,22px);background:#111a2a;border:3px solid #fff;padding:8px 12px;box-shadow:4px 4px #05080f;white-space:normal;max-width:80%;text-align:center;}
+@media(max-width:760px){
+ .arena{height:100svh!important;min-height:660px!important;background-size:auto 100%!important;background-position:center center!important;}
+ .enemy-hud{top:3%;left:2%;width:58%;padding:8px 10px;border-width:3px;}
+ .player-hud{right:2%;bottom:31%;width:58%;padding:8px 10px;border-width:3px;}
+ .hud-heading{font-size:clamp(17px,4vw,27px);}
+ .hud-stats{gap:5px;margin-top:6px;}
+ .type-tag{font-size:9px;padding:3px 5px;border-width:2px;}
+ .hp-label{font-size:17px;}
+ .hp-track{height:18px;border-width:3px;}
+ .hp-number{font-size:19px;}
+ .enemy-character{right:3%;top:18%;width:43%;height:clamp(230px,36vh,315px);}
+ .player-character{left:1%;bottom:28%;width:50%;height:clamp(270px,40vh,360px);}
+ .battle-bottom-ui{left:1%;right:1%;height:26%;min-height:176px;grid-template-columns:40% 60%;bottom:1%;}
+ .dialogue-panel{padding:10px;}
+ .dialogue-copy{font-size:clamp(14px,3vw,21px);line-height:1.35;}
+ .dialogue-caret{right:8px;bottom:8px;border-left-width:8px;border-right-width:8px;border-top-width:11px;}
+ .action-panel{padding:5px;gap:5px;}
+ .menu-btn.action-btn{padding:5px!important;gap:5px!important;flex-direction:column!important;font-size:clamp(10px,2.6vw,17px)!important;white-space:normal;}
+ .menu-btn.action-btn .action-icon{font-size:clamp(22px,5vw,34px)!important;}
+ .item-menu-overlay{width:59%;height:26%;min-height:176px;padding:8px;bottom:1%;}
+ .item-menu-overlay h3{font-size:12px;}
+ .item-botoes{grid-template-columns:1fr 1fr;gap:4px;}
+ .item-btn{font-size:10px!important;padding:6px!important;}
+}
+@media(max-width:420px){
+ .enemy-hud{width:66%;}.player-hud{width:64%;}
+ .battle-bottom-ui{grid-template-columns:35% 65%;height:27%;min-height:180px;}
+ .dialogue-copy{font-size:13px;}
+ .menu-btn.action-btn{font-size:10px!important;}
+ .item-menu-overlay{width:64%;}
+}
+@media(max-height:700px) and (min-width:761px){
+ .arena{height:100vh!important;min-height:620px!important;}
+ .enemy-character{height:36vh;}
+ .player-character{height:41vh;}
+ .battle-bottom-ui{height:26%;min-height:150px;}
+ .player-hud{bottom:31%;}
+}
+</style>
+
+<style>#menuPrincipal,#setup,#creditos{display:none!important}#jogo{display:block!important}</style></head>
+<body>
+<div class="game">
+    <div class="fita"></div>
+    <div id="menuPrincipal" class="menu-principal">
+        <h1>ESQUINA FATAL</h1>
+        <p class="subtitulo">- the game -</p>
+        <button onclick="mostrarSetup()">JOGAR</button>
+        <button onclick="mostrarCreditos()">CRÉDITOS</button>
+        <button onclick="sairJogo()">SAIR</button>
+    </div>
+
+    <div id="setup" style="display:none;">
+        <h1>QUAL O NOME DO SEU SKATISTA?</h1>
+        <div class="input-area">
+            <input type="text" id="nomeInput" placeholder="Digite seu vulgo" maxlength="20">
+            <button onclick="iniciarJogo()">COMEÇAR</button>
+            <button onclick="voltarMenu()">VOLTAR</button>
+        </div>
+    </div>
+
+    <div id="jogo" class="battle-screen" style="display:none;">
+        <div class="arena" id="arena" aria-label="Arena de batalha no skatepark">
+            <div class="scene-tint" aria-hidden="true"></div>
+
+            <div class="hud-panel enemy-hud">
+                <div class="hud-heading"><span>Mendigo</span><span>Lv. 10</span></div>
+                <div class="hud-stats">
+                    <span class="type-tag">NORMAL</span>
+                    <span class="hp-label">HP</span>
+                    <div class="hp-track"><div class="hp-fill" id="hpMendigoBar"></div></div>
+                    <span class="hp-current" id="hpMendigoText">100/100</span>
+                </div>
+            </div>
+
+            <div class="enemy-character" aria-label="Mendigo">
+                <img src="assets/mendigo.png" alt="Mendigo pixel art">
+            </div>
+
+            <div class="player-character" aria-label="Skatista">
+                <img src="assets/skatista.png" alt="Skatista segurando um skate">
+            </div>
+
+            <div class="hud-panel player-hud">
+                <div class="hud-heading"><span id="playerHudName">Skatista</span><span>Lv. 12</span></div>
+                <div class="hud-stats">
+                    <span class="type-tag">NORMAL</span>
+                    <span class="hp-label">HP</span>
+                    <div class="hp-track"><div class="hp-fill" id="hpPlayerBar"></div></div>
+                </div>
+                <div class="hp-number" id="hpPlayerText">48/48</div>
+            </div>
+
+            <div class="cena-texto" id="cenaTexto"></div>
+            <div class="cena-texto ataque-texto" id="ataqueTexto"></div>
+            <div class="cena-texto aviso-texto" id="avisoTexto"></div>
+
+            <div class="battle-bottom-ui">
+                <div class="dialogue-panel" id="dialoguePanel" aria-live="polite">
+                    <div class="dialogue-copy" id="dialogueText">O que o Skatista vai fazer?</div>
+                    <span class="dialogue-caret" aria-hidden="true"></span>
+                </div>
+                <div class="action-panel" id="actionPanel">
+                    <button class="action-btn action-punch menu-btn" onclick="acao(1)" aria-label="Soco direto">
+                        <span class="action-icon" aria-hidden="true">✊</span><span>Soco Direto</span>
+                    </button>
+                    <button class="action-btn action-combo menu-btn" onclick="acao(3)" aria-label="Combo">
+                        <span class="action-icon combo-icon" aria-hidden="true">✦</span><span>Combo</span>
+                    </button>
+                    <button class="action-btn action-items menu-btn" onclick="acao(4)" aria-label="Abrir itens">
+                        <span class="action-icon bag-icon" aria-hidden="true">▣</span><span>Itens</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="itemArea" class="item-menu-overlay" style="display:none;">
+                <h3>MOCHILA — ESCOLHA UM ITEM</h3>
+                <div class="item-botoes" id="botoesItens"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="creditos" style="display:none;">
+        <h1>CRÉDITOS</h1>
+        <p>Jogo: ESQUINA FATAL<br>Criador: Davi.H<br>Versão: 3.0 - Corrigido</p>
+        <button class="setup-btn" onclick="voltarMenu()">VOLTAR</button>
+    </div>
+</div>
+
+<script>
+let nome = "";
+
+let hp_player = 48;
+let max_hp = 48;
+
+let hp_mendigo = 100;
+let hp_mendigo_max = 100;
+
+let round_atual = 1;
+let inventario = { "energético": 2, "spray de pimenta": 2, "marmitex": 2 };
+let rounds_ardencia = 0;
+let vitoria_pacifista = false;
+let turnoPlayer = true;
+let jogoAtivo = false;
+let timeoutPendente = null;
+
+const API_BASE_URL = "http://localhost:1880";
+let sessaoBanco = null;
+let filaBanco = Promise.resolve();
+
+function headersNodeRED() {
+    return {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    };
+}
+
+async function enviarNodeRED(endpoint, payload) {
+    try {
+        const resposta = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "POST",
+            headers: headersNodeRED(),
+            body: JSON.stringify(payload)
+        });
+        const texto = await resposta.text();
+        let dados = {};
+        try { dados = texto ? JSON.parse(texto) : {}; } catch (_) {
+            dados = { mensagem: texto };
+        }
+        if (!resposta.ok) {
+            console.error(`Node-RED ${endpoint} respondeu ${resposta.status}:`, dados);
+            return null;
+        }
+        return dados;
+    } catch (erro) {
+        console.error(`Falha ao comunicar com Node-RED (${endpoint}):`, erro);
+        return null;
+    }
+}
+
+async function criarPartidaNoNodeRED(sessao) {
+    const dados = await enviarNodeRED("/eventos/partida-iniciada", {
+        jogador: nome,
+        personagem: nome,
+        id_desafiante: 1,
+        id_oponente: 4,
+        status: "Em Andamento",
+        hp_player: hp_player,
+        hp_mendigo: hp_mendigo
+    });
+    if (dados && dados.id_partida != null) {
+        sessao.idPartida = Number(dados.id_partida);
+        console.log("Partida criada no banco. ID:", sessao.idPartida);
+        return true;
+    }
+    console.warn("Não foi possível salvar a partida no banco. O jogo continuará localmente.");
+    return false;
+}
+
+// Todos os pedidos de gravação passam pela mesma fila para manter a ordem dos turnos.
+function registrarTurnoNoNodeRED({ idPersonagem, tipoAcao, idItemUtilizado = null, valorImpacto = 0 }) {
+    const sessao = sessaoBanco;
+    if (!sessao) return;
+
+    const turno = {
+        id_personagem_atuante: Number(idPersonagem) || 1,
+        tipo_acao: String(tipoAcao || "Ação"),
+        id_item_utilizado: idItemUtilizado == null ? null : Number(idItemUtilizado),
+        valor_impacto: Math.max(0, Number(valorImpacto) || 0),
+        hp_player: Math.max(0, Number(hp_player) || 0),
+        hp_mendigo: Math.max(0, Number(hp_mendigo) || 0)
+    };
+
+    filaBanco = filaBanco.then(async () => {
+        await sessao.promessaCriacao;
+        if (sessao.idPartida == null) return;
+        sessao.numeroTurno++;
+        await enviarNodeRED("/eventos/turno", {
+            id_partida: sessao.idPartida,
+            numero_turno: sessao.numeroTurno,
+            ...turno
+        });
+    }).catch(erro => console.error("Erro ao registrar turno:", erro));
+}
+
+function finalizarPartidaNoNodeRED() {
+    const sessao = sessaoBanco;
+    if (!sessao) return;
+
+    const venceu = hp_mendigo <= 0 && hp_player > 0;
+    const dadosFinal = {
+        id_vencedor: venceu ? 1 : (hp_player <= 0 ? 4 : null),
+        status: "Finalizada",
+        hp_player: Math.max(0, Number(hp_player) || 0),
+        hp_mendigo: Math.max(0, Number(hp_mendigo) || 0),
+        data_fim: new Date().toISOString(),
+        jogador: nome
+    };
+
+    filaBanco = filaBanco.then(async () => {
+        await sessao.promessaCriacao;
+        if (sessao.idPartida == null) return;
+        await enviarNodeRED("/eventos/partida-finalizada", {
+            id_partida: sessao.idPartida,
+            ...dadosFinal
+        });
+    }).catch(erro => console.error("Erro ao finalizar partida no banco:", erro));
+}
+
+const itensInfo = {
+    "energético": { icone: "", desc: "+30 HP" },
+    "spray de pimenta": { icone: "", desc: "Arde 2 rounds" },
+    "marmitex": { icone: "", desc: "+50 HP" }
+};
+
+const cenas = [
+    { cor: "#3a3a3a", texto: "CALÇADA SUJA" },
+    { cor: "#4a2c2a", texto: "ESCURECENDO..." },
+    { cor: "#2a3a2c", texto: "CARRO PASSANDO!" }
+];
+
+function limparTimeout() {
+    if (timeoutPendente) { clearTimeout(timeoutPendente); timeoutPendente = null; }
+}
+
+function esconderTelas() {
+    document.getElementById('menuPrincipal').style.display = 'none';
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('jogo').style.display = 'none';
+    document.getElementById('creditos').style.display = 'none';
+}
+function voltarMenu() {
+    jogoAtivo = false;
+    limparTimeout();
+    const itemArea = document.getElementById('itemArea');
+    const actionPanel = document.getElementById('actionPanel');
+    if (itemArea) itemArea.style.display = 'none';
+    if (actionPanel) actionPanel.style.display = 'grid';
+    esconderTelas();
+    document.getElementById('menuPrincipal').style.display = 'block';
+}
+function mostrarSetup() { esconderTelas(); document.getElementById('setup').style.display = 'block'; }
+function mostrarCreditos() { esconderTelas(); document.getElementById('creditos').style.display = 'block'; }
+function sairJogo() { alert("Obrigado por jogar!"); }
+
+let filaAvisos = [];
+let avisoAtivo = false;
+function log(texto) {
+    filaAvisos.push(texto);
+    processarFilaAvisos();
+}
+function processarFilaAvisos() {
+    if (avisoAtivo || filaAvisos.length === 0) return;
+    avisoAtivo = true;
+    const texto = filaAvisos.shift();
+    const el = document.getElementById('avisoTexto');
+    el.innerHTML = texto;
+    el.style.opacity = 1;
+    setTimeout(() => {
+        el.style.opacity = 0;
+        setTimeout(() => { avisoAtivo = false; processarFilaAvisos(); }, 350);
+    }, 1500);
+}
+let timeoutAtaqueTexto = null;
+function mostrarAtaque(texto) {
+    const dialogo = document.getElementById('dialogueText');
+    if (dialogo) dialogo.textContent = String(texto).replace(/<[^>]*>/g, ' ');
+    const el = document.getElementById('ataqueTexto');
+    el.innerText = texto;
+    el.style.opacity = 1;
+    clearTimeout(timeoutAtaqueTexto);
+    timeoutAtaqueTexto = setTimeout(() => { el.style.opacity = 0; }, 1900);
+}
+function atualizarBarras() {
+    const hpPlayerBar = document.getElementById('hpPlayerBar');
+    const hpMendigoBar = document.getElementById('hpMendigoBar');
+    hpPlayerBar.style.width = Math.max(0, Math.min(100, hp_player / max_hp * 100)) + "%";
+    hpMendigoBar.style.width = Math.max(0, Math.min(100, hp_mendigo / hp_mendigo_max * 100)) + "%";
+    document.getElementById('hpPlayerText').textContent = `${Math.max(0, hp_player)}/${max_hp}`;
+    document.getElementById('hpMendigoText').textContent = `${Math.max(0, hp_mendigo)}/${hp_mendigo_max}`;
+}
+function mudarCena() {
+    let cenaIndex = (round_atual - 1) % cenas.length;
+    let cena = cenas[cenaIndex];
+    document.getElementById('arena').dataset.scene = String(cenaIndex);
+    const cenaTexto = document.getElementById('cenaTexto');
+    cenaTexto.innerText = cena.texto;
+    cenaTexto.style.opacity = 1;
+    setTimeout(() => { cenaTexto.style.opacity = 0; }, 1500);
+}
+
+function iniciarJogo() {
+    nome = (document.getElementById('nomeInput').value || "Skatista")
+        .trim().slice(0, 40).replace(/[<>"'&]/g, "") || "Skatista";
+    esconderTelas();
+    document.getElementById('jogo').style.display = 'block';
+    document.getElementById('playerHudName').textContent = nome;
+    document.getElementById('dialogueText').textContent = `O que ${nome} vai fazer?`;
+    document.getElementById('actionPanel').style.display = 'grid';
+    hp_player = max_hp; hp_mendigo = hp_mendigo_max; round_atual = 1;
+    inventario = { "energético": 2, "spray de pimenta": 2, "marmitex": 2 };
+    rounds_ardencia = 0; vitoria_pacifista = false; turnoPlayer = true; jogoAtivo = true;
+    limparTimeout();
+    filaAvisos = []; avisoAtivo = false;
+    document.getElementById('avisoTexto').style.opacity = 0;
+    document.getElementById('ataqueTexto').style.opacity = 0;
+    document.getElementById('itemArea').style.display = 'none';
+    document.querySelectorAll('.menu-btn').forEach(b => b.disabled = false);
+    log(`${nome}, você tá voltando do rolê...`);
+    log("MENDIGO: Essa calçada é MINHA!");
+    log(`<br>================ ROUND ${round_atual} ================`);
+    mudarCena();
+    atualizarBarras();
+    sessaoBanco = { idPartida: null, numeroTurno: 0, promessaCriacao: null };
+    const sessaoAtual = sessaoBanco;
+    sessaoAtual.promessaCriacao = criarPartidaNoNodeRED(sessaoAtual);
+}
+
+function reduzirVidaMendigo(dano) {
+    hp_mendigo -= dano;
+    hp_mendigo = Math.max(0, hp_mendigo);
+    return hp_mendigo;
+}
+
+function atacarSocoDireto() {
+    let dano = rand(12, 22);
+    mostrarAtaque(`Direto -${dano} de dano!`);
+    reduzirVidaMendigo(dano);
+}
+
+function atacarManobraUnica() {
+    if (rand(1, 100) <= 75) {
+        let dano = rand(8, 35);
+        mostrarAtaque(`Hardflip! ${dano} de dano!`);
+        reduzirVidaMendigo(dano);
+    } else {
+        let dano = rand(5, 12);
+        hp_player -= dano;
+        mostrarAtaque(`Errou a manobra! -${dano}`);
+    }
+}
+
+function atacarCombo() {
+    let dano_total = 0;
+    for (let i = 1; i <= 3; i++) {
+        if (rand(1, 100) <= 70) {
+            dano_total += rand(5, 15);
+        }
+    }
+    mostrarAtaque(`Combo: ${dano_total} de dano!`);
+    reduzirVidaMendigo(dano_total);
+}
+
+function atacarBolsaFamilia() {
+    if (rand(1, 100) <= 50) {
+        log("MENDIGO: pode passar");
+        vitoria_pacifista = true;
+        reduzirVidaMendigo(hp_mendigo);
+    } else {
+        let dano = rand(10, 18);
+        hp_player -= dano;
+        mostrarAtaque(`Rasteira -${dano}hp`);
+    }
+}
+
+function aplicarArdencia() {
+    if (rounds_ardencia > 0) {
+        mostrarAtaque(`[ ARDÊNCIA ] +8 de dano`);
+        rounds_ardencia--;
+        reduzirVidaMendigo(8);
+    }
+}
+
+function acao(escolha) {
+    if (!jogoAtivo || !turnoPlayer) return;
+    turnoPlayer = false;
+    document.querySelectorAll('.menu-btn:not(.restart-btn)').forEach(b => b.disabled = true);
+    const hpMendigoAntes = hp_mendigo;
+    const hpPlayerAntes = hp_player;
+
+    if (escolha == 1) atacarSocoDireto();
+    else if (escolha == 2) atacarManobraUnica();
+    else if (escolha == 3) atacarCombo();
+    else if (escolha == 4) { mostrarItens(); return; }
+    else if (escolha == 5) atacarBolsaFamilia();
+
+    aplicarArdencia();
+
+    hp_mendigo = Math.max(0, hp_mendigo);
+    hp_player = Math.max(0, hp_player);
+    atualizarBarras();
+
+    const dano = Math.max(0, hpMendigoAntes - hp_mendigo);
+    registrarTurnoNoNodeRED({
+        idPersonagem: 1,
+        tipoAcao: escolha === 5 ? "Habilidade Especial" : "Ataque",
+        valorImpacto: dano
+    });
+
+    if (hp_mendigo <= 0 || hp_player <= 0) { final(); return; }
+
+    timeoutPendente = setTimeout(turnoMendigo, 1000);
+}
+
+function mostrarItens() {
+    document.getElementById('actionPanel').style.display = 'none';
+    document.getElementById('itemArea').style.display = 'block';
+    document.getElementById('dialogueText').textContent = 'Escolha um item da mochila.';
+    const container = document.getElementById('botoesItens');
+    container.innerHTML = "";
+    for (let item in inventario) {
+        let btn = document.createElement('button');
+        btn.className = 'item-btn';
+        btn.disabled = inventario[item] <= 0;
+        btn.innerHTML = `<span class="item-icone">${itensInfo[item].icone}</span> ${item.toUpperCase()}<br><span class="item-qtd">${itensInfo[item].desc} - ${inventario[item]}x</span>`;
+        btn.onclick = () => usarItem(item);
+        container.appendChild(btn);
+    }
+    let btnVoltar = document.createElement('button');
+    btnVoltar.className = 'item-btn voltar-btn';
+    btnVoltar.innerHTML = "VOLTAR";
+    btnVoltar.onclick = () => {
+        document.getElementById('itemArea').style.display = 'none';
+        document.getElementById('actionPanel').style.display = 'grid';
+        document.getElementById('dialogueText').textContent = `O que ${nome} vai fazer?`;
+        turnoPlayer = true;
+        document.querySelectorAll('.menu-btn').forEach(b => b.disabled = false);
+    };
+    container.appendChild(btnVoltar);
+    document.getElementById('itemArea').style.display = 'block';
+}
+
+function usarItem(item) {
+    if (!jogoAtivo) return;
+    document.getElementById('itemArea').style.display = 'none';
+    document.getElementById('actionPanel').style.display = 'grid';
+    document.getElementById('dialogueText').textContent = `Você usou ${item}.`;
+    if (inventario[item] > 0) {
+        inventario[item]--;
+        if (item == "energético") { hp_player = Math.min(max_hp, hp_player + 30); log(`${itensInfo[item].icone} +30 HP!`); }
+        else if (item == "spray de pimenta") { rounds_ardencia = 2; log(`${itensInfo[item].icone} Arde 2 rounds!`); }
+        else if (item == "marmitex") { hp_player = Math.min(max_hp, hp_player + 50); log(`${itensInfo[item].icone} +50 HP!`); }
+    }
+    atualizarBarras();
+    turnoPlayer = false;
+    const idsItens = { "energético": 1, "spray de pimenta": 2, "marmitex": 3 };
+    registrarTurnoNoNodeRED({
+        idPersonagem: 1,
+        tipoAcao: "Uso de Item",
+        idItemUtilizado: idsItens[item] || null,
+        valorImpacto: item === "energético" ? 30 : (item === "marmitex" ? 50 : 0)
+    });
+    timeoutPendente = setTimeout(turnoMendigo, 1000);
+}
+
+// ===== FUNÇÕES DE ATAQUE DO MENDIGO (uma para cada tipo de ação) =====
+
+function mendigoAtacarFaca() {
+    let dano = rand(10, 20);
+    hp_player -= dano;
+    mostrarAtaque(`Faca! ${dano} de dano!`);
+}
+
+function mendigoAtacarSoco() {
+    let dano = rand(14, 24);
+    hp_player -= dano;
+    mostrarAtaque(`Soco! ${dano} de dano!`);
+}
+
+function mendigoCurar() {
+    let cura = rand(8, 15);
+    hp_mendigo = Math.min(hp_mendigo_max, hp_mendigo + cura);
+    mostrarAtaque(`Curou ${cura} HP!`);
+}
+
+function verificarDropItem() {
+    if (round_atual % 4 == 0 && hp_mendigo > 0) {
+        let drops = Object.keys(inventario);
+        let drop = drops[rand(0, drops.length - 1)];
+        inventario[drop]++;
+        log(`<br>!!! Achou 1x ${drop} no chão!!!`);
+    }
+}
+
+function turnoMendigo() {
+    if (!jogoAtivo) return;
+    const hpPlayerAntesTurno = hp_player;
+    document.getElementById('dialogueText').textContent = 'O Mendigo está se preparando para atacar!';
+    log("<br>Vez do mendigo...");
+    let a = rand(1, 3);
+    if (a == 1) mendigoAtacarFaca();
+    else if (a == 2) mendigoAtacarSoco();
+    else mendigoCurar();
+
+    verificarDropItem();
+
+    const danoNPC = Math.max(0, hpPlayerAntesTurno - hp_player);
+    registrarTurnoNoNodeRED({
+        idPersonagem: 4,
+        tipoAcao: "Ataque",
+        idItemUtilizado: a === 1 ? 4 : null,
+        valorImpacto: danoNPC
+    });
+
+    hp_player = Math.max(0, hp_player);
+    atualizarBarras();
+    round_atual++;
+    mudarCena();
+
+    if (hp_player <= 0) { final(); return; }
+
+    log(`<br>================ ROUND ${round_atual} ================`);
+    turnoPlayer = true;
+    document.querySelectorAll('.menu-btn').forEach(b => b.disabled = false);
+}
+
+function final() {
+    jogoAtivo = false;
+    finalizarPartidaNoNodeRED();
+    log("<br>======== FIM DE JOGO ========");
+    if (hp_player <= 0) { log("VOCÊ FOI NOCAUTEADO!"); }
+    else { log(vitoria_pacifista ? "FINAL: RESPEITO" : "FINAL: VITÓRIA"); }
+    timeoutPendente = setTimeout(() => {
+        log("<br>Voltando ao menu...");
+        timeoutPendente = setTimeout(voltarMenu, 1000);
+    }, 3000);
+}
+
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+// Atalhos alternativos mantêm acessíveis as ações secundárias do jogo.
+document.addEventListener('keydown', (event) => {
+    if (document.getElementById('jogo').style.display === 'none') return;
+    if (event.target && ['INPUT','TEXTAREA'].includes(event.target.tagName)) return;
+    if (event.key === '1') acao(1);
+    else if (event.key === '2') acao(2);
+    else if (event.key === '3') acao(3);
+    else if (event.key === '4') acao(4);
+    else if (event.key === '5') acao(5);
+    else if (event.key === 'Escape' && document.getElementById('itemArea').style.display !== 'none') {
+        document.getElementById('itemArea').style.display = 'none';
+        document.getElementById('actionPanel').style.display = 'grid';
+        turnoPlayer = true;
+        document.querySelectorAll('.menu-btn').forEach(b => b.disabled = false);
+        document.getElementById('dialogueText').textContent = `O que ${nome} vai fazer?`;
+    }
+});
+
+</script>
+</body>
+</html>

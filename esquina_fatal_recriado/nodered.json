@@ -1,0 +1,1138 @@
+[
+  {
+    "id": "0cda26428b7e4b89",
+    "type": "tab",
+    "label": "Esquina Fatal - API e Banco",
+    "disabled": false,
+    "info": "Registra partidas e turnos do jogo Esquina Fatal em SQLite."
+  },
+  {
+    "id": "6d6f432ea7b24b02",
+    "type": "sqlitedb",
+    "db": "esquina_fatal.db",
+    "mode": "RWC"
+  },
+  {
+    "id": "a13a405cda5d4a14",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "Criar partida",
+    "url": "/eventos/partida-iniciada",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 150,
+    "wires": [
+      [
+        "5735734031bc49d4"
+      ]
+    ]
+  },
+  {
+    "id": "5735734031bc49d4",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Validar/preparar: Criar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nconst d = (msg.payload && typeof msg.payload === 'object') ? msg.payload : {};\nconst safeText = (v, fallback, max) => { const s = String(v == null ? '' : v).replace(/[\\u0000-\\u001f]/g, '').trim().slice(0,max); return (s || fallback).replace(/'/g,\"''\"); };\nconst safeInt = (v, fallback) => { const n = Number(v); return Number.isSafeInteger(n) && n >= 0 ? n : fallback; };\nconst id = Date.now() * 1000 + Math.floor(Math.random() * 1000);\nconst jogador = safeText(d.jogador, 'Skatista', 60);\nconst personagem = safeText(d.personagem, 'Skatista', 40);\nconst desafiante = safeInt(d.id_desafiante, 1);\nconst oponente = safeInt(d.id_oponente, 4);\nconst hpPlayer = safeInt(d.hp_player, 100);\nconst hpMendigo = safeInt(d.hp_mendigo, 100);\nmsg.partidaCriada = {id_partida:id, jogador:jogador.replace(/''/g,\"'\"), personagem:personagem.replace(/''/g,\"'\"), hp_player:hpPlayer, hp_mendigo:hpMendigo};\nmsg.topic = \"INSERT INTO partidas (id_partida,jogador,personagem,id_desafiante,id_oponente,status,hp_player,hp_mendigo) VALUES (\" + id + \", '\" + jogador + \"', '\" + personagem + \"', \" + desafiante + \", \" + oponente + \", 'Em Andamento', \" + hpPlayer + \", \" + hpMendigo + \")\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 150,
+    "wires": [
+      [
+        "81a64b963ea34cb2"
+      ]
+    ]
+  },
+  {
+    "id": "81a64b963ea34cb2",
+    "type": "sqlite",
+    "z": "0cda26428b7e4b89",
+    "mydb": "6d6f432ea7b24b02",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Criar partida",
+    "x": 545,
+    "y": 150,
+    "wires": [
+      [
+        "34736671c79f430d"
+      ]
+    ]
+  },
+  {
+    "id": "34736671c79f430d",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta JSON: Criar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg);\nmsg.statusCode = 201;\nmsg.payload = {ok:true, id_partida:msg.partidaCriada.id_partida, mensagem:'Partida criada.', jogador:msg.partidaCriada.jogador};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 760,
+    "y": 150,
+    "wires": [
+      [
+        "8a5ca10d754d4742"
+      ]
+    ]
+  },
+  {
+    "id": "8a5ca10d754d4742",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "HTTP response: Criar partida",
+    "statusCode": "",
+    "headers": {},
+    "x": 980,
+    "y": 150,
+    "wires": []
+  },
+  {
+    "id": "ccaa4513668f496b",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "Registrar turno",
+    "url": "/eventos/turno",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 310,
+    "wires": [
+      [
+        "1abf723ec3234407"
+      ]
+    ]
+  },
+  {
+    "id": "1abf723ec3234407",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Validar/preparar: Registrar turno",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nconst d = (msg.payload && typeof msg.payload === 'object') ? msg.payload : {};\nconst toInt = v => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isSafeInteger(n) ? n : null; };\nconst partida = toInt(d.id_partida), turno = toInt(d.numero_turno), ator = toInt(d.id_personagem_atuante);\nif (!partida || partida < 1 || !turno || turno < 1 || ator === null || ator < 0) {\n  setJsonHeaders(msg); msg.statusCode=400; msg.payload={ok:false,error:'Campos obrigatórios inválidos: id_partida, numero_turno e id_personagem_atuante.'}; return [null,msg];\n}\nconst clean = v => String(v == null ? '' : v).replace(/[\\u0000-\\u001f]/g,'').slice(0,80).replace(/'/g,\"''\");\nconst item = toInt(d.id_item_utilizado);\nconst impactRaw = Number(d.valor_impacto), impact = Number.isFinite(impactRaw) ? Math.max(0,Math.min(1000000,impactRaw)) : 0;\nconst hpRaw1=Number(d.hp_player), hpRaw2=Number(d.hp_mendigo);\nconst hp1=Number.isFinite(hpRaw1)?Math.max(0,Math.min(100000,Math.trunc(hpRaw1))):0;\nconst hp2=Number.isFinite(hpRaw2)?Math.max(0,Math.min(100000,Math.trunc(hpRaw2))):0;\nmsg.dadosTurno={id_partida:partida,numero_turno:turno};\nmsg.topic=\"INSERT INTO turnos (id_partida,numero_turno,id_personagem_atuante,tipo_acao,id_item_utilizado,valor_impacto,hp_player,hp_mendigo) VALUES (\"+partida+\",\"+turno+\",\"+ator+\",'\"+clean(d.tipo_acao||'Ação')+\"',\"+(item===null?'NULL':item)+\",\"+impact+\",\"+hp1+\",\"+hp2+\")\";\nreturn [msg,null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 310,
+    "wires": [
+      [
+        "720ae78496e142b8"
+      ],
+      [
+        "949fd8619b094e5a"
+      ]
+    ]
+  },
+  {
+    "id": "720ae78496e142b8",
+    "type": "sqlite",
+    "z": "0cda26428b7e4b89",
+    "mydb": "6d6f432ea7b24b02",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Registrar turno",
+    "x": 545,
+    "y": 310,
+    "wires": [
+      [
+        "9dbf324653eb44a3"
+      ]
+    ]
+  },
+  {
+    "id": "9dbf324653eb44a3",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta JSON: Registrar turno",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg);\nmsg.statusCode = 201;\nmsg.payload = {ok:true,id_partida:msg.dadosTurno.id_partida,numero_turno:msg.dadosTurno.numero_turno,mensagem:'Turno registrado.'};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 760,
+    "y": 310,
+    "wires": [
+      [
+        "949fd8619b094e5a"
+      ]
+    ]
+  },
+  {
+    "id": "949fd8619b094e5a",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "HTTP response: Registrar turno",
+    "statusCode": "",
+    "headers": {},
+    "x": 980,
+    "y": 310,
+    "wires": []
+  },
+  {
+    "id": "caf26663318f436c",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "Finalizar partida",
+    "url": "/eventos/partida-finalizada",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 470,
+    "wires": [
+      [
+        "6dfbeca90038482f"
+      ]
+    ]
+  },
+  {
+    "id": "6dfbeca90038482f",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Validar/preparar: Finalizar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nconst d = (msg.payload && typeof msg.payload === 'object') ? msg.payload : {};\nconst id = Number(d.id_partida);\nif (!Number.isSafeInteger(id) || id < 1) { setJsonHeaders(msg); msg.statusCode=400; msg.payload={ok:false,error:'id_partida inválido.'}; return [null,msg]; }\nconst w = (d.id_vencedor === null || d.id_vencedor === undefined || d.id_vencedor === '') ? null : Number(d.id_vencedor);\nconst winner = (w === 1 || w === 4) ? w : null;\nconst statusIn = String(d.status || 'Finalizada');\nconst status = ['Finalizada','Abandonada','Em Andamento'].includes(statusIn) ? statusIn : 'Finalizada';\nconst intSafe = v => { const n=Number(v); return Number.isFinite(n)?Math.max(0,Math.min(100000,Math.trunc(n))):0; };\nconst hp1=intSafe(d.hp_player), hp2=intSafe(d.hp_mendigo);\nconst when = String(d.data_fim || new Date().toISOString()).replace(/[\\u0000-\\u001f]/g,'').slice(0,50).replace(/'/g,\"''\");\nmsg.finalDados={id_partida:id,id_vencedor:winner,status:status,hp_player:hp1,hp_mendigo:hp2};\nmsg.topic=\"UPDATE partidas SET id_vencedor=\"+(winner===null?'NULL':winner)+\",status='\"+status+\"',hp_player=\"+hp1+\",hp_mendigo=\"+hp2+\",data_fim='\"+when+\"' WHERE id_partida=\"+id;\nreturn [msg,null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 470,
+    "wires": [
+      [
+        "6a7b8d0ec7484a35"
+      ],
+      [
+        "3c6d6715bf6b4f95"
+      ]
+    ]
+  },
+  {
+    "id": "6a7b8d0ec7484a35",
+    "type": "sqlite",
+    "z": "0cda26428b7e4b89",
+    "mydb": "6d6f432ea7b24b02",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Finalizar partida",
+    "x": 545,
+    "y": 470,
+    "wires": [
+      [
+        "3d278e15dd644bc2"
+      ]
+    ]
+  },
+  {
+    "id": "3d278e15dd644bc2",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta JSON: Finalizar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg);\nmsg.statusCode = 200;\nmsg.payload = {ok:true,id_partida:msg.finalDados.id_partida,status:msg.finalDados.status,mensagem:'Resultado da partida salvo.'};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 760,
+    "y": 470,
+    "wires": [
+      [
+        "3c6d6715bf6b4f95"
+      ]
+    ]
+  },
+  {
+    "id": "3c6d6715bf6b4f95",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "HTTP response: Finalizar partida",
+    "statusCode": "",
+    "headers": {},
+    "x": 980,
+    "y": 470,
+    "wires": []
+  },
+  {
+    "id": "8154c351a02048a5",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "Listar partidas",
+    "url": "/api/partidas",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 630,
+    "wires": [
+      [
+        "4aa6943f7121471d"
+      ]
+    ]
+  },
+  {
+    "id": "4aa6943f7121471d",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Validar/preparar: Listar partidas",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nmsg.topic = \"SELECT id_partida,jogador,personagem,id_vencedor,status,hp_player,hp_mendigo,data_inicio,data_fim FROM partidas ORDER BY id_partida DESC LIMIT 100\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 630,
+    "wires": [
+      [
+        "e02b6430e4394182"
+      ]
+    ]
+  },
+  {
+    "id": "e02b6430e4394182",
+    "type": "sqlite",
+    "z": "0cda26428b7e4b89",
+    "mydb": "6d6f432ea7b24b02",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Listar partidas",
+    "x": 545,
+    "y": 630,
+    "wires": [
+      [
+        "792b0f37583d448b"
+      ]
+    ]
+  },
+  {
+    "id": "792b0f37583d448b",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta JSON: Listar partidas",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=200; msg.payload={ok:true,partidas:Array.isArray(msg.payload)?msg.payload:[]}; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 760,
+    "y": 630,
+    "wires": [
+      [
+        "50562dfba8024b66"
+      ]
+    ]
+  },
+  {
+    "id": "50562dfba8024b66",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "HTTP response: Listar partidas",
+    "statusCode": "",
+    "headers": {},
+    "x": 980,
+    "y": 630,
+    "wires": []
+  },
+  {
+    "id": "b5241dfdedfc4de0",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "Detalhes da partida",
+    "url": "/api/partidas/:id",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 790,
+    "wires": [
+      [
+        "012f01f7a75c4f32"
+      ]
+    ]
+  },
+  {
+    "id": "012f01f7a75c4f32",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Validar/preparar: Detalhes da partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nconst id=Number(msg.req && msg.req.params && msg.req.params.id);\nif (!Number.isSafeInteger(id) || id<1) { setJsonHeaders(msg); msg.statusCode=400; msg.payload={ok:false,error:'ID de partida inválido.'}; return [null,msg]; }\nmsg.idConsulta=id; msg.topic=\"SELECT * FROM partidas WHERE id_partida=\"+id; return [msg,null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 790,
+    "wires": [
+      [
+        "c0767814994c40f9"
+      ],
+      [
+        "7a35f3518dbe4781"
+      ]
+    ]
+  },
+  {
+    "id": "c0767814994c40f9",
+    "type": "sqlite",
+    "z": "0cda26428b7e4b89",
+    "mydb": "6d6f432ea7b24b02",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Detalhes da partida",
+    "x": 545,
+    "y": 790,
+    "wires": [
+      [
+        "40c135fb79124bc9"
+      ]
+    ]
+  },
+  {
+    "id": "40c135fb79124bc9",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta JSON: Detalhes da partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); const rows=Array.isArray(msg.payload)?msg.payload:[]; if(!rows.length){msg.statusCode=404;msg.payload={ok:false,error:'Partida não encontrada.'};}else{msg.statusCode=200;msg.payload={ok:true,partida:rows[0]};}return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 760,
+    "y": 790,
+    "wires": [
+      [
+        "7a35f3518dbe4781"
+      ]
+    ]
+  },
+  {
+    "id": "7a35f3518dbe4781",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "HTTP response: Detalhes da partida",
+    "statusCode": "",
+    "headers": {},
+    "x": 980,
+    "y": 790,
+    "wires": []
+  },
+  {
+    "id": "0472e64534514dcd",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "Turnos da partida",
+    "url": "/api/partidas/:id/turnos",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 950,
+    "wires": [
+      [
+        "33398b00694643fe"
+      ]
+    ]
+  },
+  {
+    "id": "33398b00694643fe",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Validar/preparar: Turnos da partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nconst id=Number(msg.req && msg.req.params && msg.req.params.id);\nif (!Number.isSafeInteger(id) || id<1) { setJsonHeaders(msg); msg.statusCode=400; msg.payload={ok:false,error:'ID de partida inválido.'}; return [null,msg]; }\nmsg.idConsulta=id; msg.topic=\"SELECT id_turno,id_partida,numero_turno,id_personagem_atuante,tipo_acao,id_item_utilizado,valor_impacto,hp_player,hp_mendigo,data_registro FROM turnos WHERE id_partida=\"+id+\" ORDER BY numero_turno ASC\"; return [msg,null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 950,
+    "wires": [
+      [
+        "43ac94a99086405e"
+      ],
+      [
+        "6af6ba4650624e74"
+      ]
+    ]
+  },
+  {
+    "id": "43ac94a99086405e",
+    "type": "sqlite",
+    "z": "0cda26428b7e4b89",
+    "mydb": "6d6f432ea7b24b02",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Turnos da partida",
+    "x": 545,
+    "y": 950,
+    "wires": [
+      [
+        "c5d32ae8ad7c4152"
+      ]
+    ]
+  },
+  {
+    "id": "c5d32ae8ad7c4152",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta JSON: Turnos da partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=200; msg.payload={ok:true,id_partida:msg.idConsulta,turnos:Array.isArray(msg.payload)?msg.payload:[]}; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 760,
+    "y": 950,
+    "wires": [
+      [
+        "6af6ba4650624e74"
+      ]
+    ]
+  },
+  {
+    "id": "6af6ba4650624e74",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "HTTP response: Turnos da partida",
+    "statusCode": "",
+    "headers": {},
+    "x": 980,
+    "y": 950,
+    "wires": []
+  },
+  {
+    "id": "278bde38f9e945a4",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "Estatísticas dos jogadores",
+    "url": "/api/estatisticas",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1110,
+    "wires": [
+      [
+        "d6299195bc7d47c6"
+      ]
+    ]
+  },
+  {
+    "id": "d6299195bc7d47c6",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Validar/preparar: Estatísticas dos jogadores",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nmsg.topic = \"SELECT * FROM vw_estatisticas_jogadores ORDER BY total_partidas DESC, jogador ASC LIMIT 100\"; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 1110,
+    "wires": [
+      [
+        "5e12908363e547d6"
+      ]
+    ]
+  },
+  {
+    "id": "5e12908363e547d6",
+    "type": "sqlite",
+    "z": "0cda26428b7e4b89",
+    "mydb": "6d6f432ea7b24b02",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Estatísticas dos jogadores",
+    "x": 545,
+    "y": 1110,
+    "wires": [
+      [
+        "8606f01359564a81"
+      ]
+    ]
+  },
+  {
+    "id": "8606f01359564a81",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta JSON: Estatísticas dos jogadores",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=200; msg.payload={ok:true,estatisticas:Array.isArray(msg.payload)?msg.payload:[]}; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 760,
+    "y": 1110,
+    "wires": [
+      [
+        "a6e8cd4532824785"
+      ]
+    ]
+  },
+  {
+    "id": "a6e8cd4532824785",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "HTTP response: Estatísticas dos jogadores",
+    "statusCode": "",
+    "headers": {},
+    "x": 980,
+    "y": 1110,
+    "wires": []
+  },
+  {
+    "id": "4c731443ea9f4f6b",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "Verificar API",
+    "url": "/health",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1270,
+    "wires": [
+      [
+        "db4b0be9b00144fc"
+      ]
+    ]
+  },
+  {
+    "id": "db4b0be9b00144fc",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Status da API",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=200; msg.payload={ok:true,servico:'Esquina Fatal API',status:'online'}; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 330,
+    "y": 1270,
+    "wires": [
+      [
+        "b35844dc9b8b48a5"
+      ]
+    ]
+  },
+  {
+    "id": "b35844dc9b8b48a5",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta health",
+    "statusCode": "",
+    "headers": {},
+    "x": 560,
+    "y": 1270,
+    "wires": []
+  },
+  {
+    "id": "22930545c33d41fb",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "CORS OPTIONS /eventos/partida-iniciada",
+    "url": "/eventos/partida-iniciada",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1430,
+    "wires": [
+      [
+        "72d4fd203e994992"
+      ]
+    ]
+  },
+  {
+    "id": "72d4fd203e994992",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Responder preflight CORS",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=204; msg.payload=''; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 1430,
+    "wires": [
+      [
+        "d9c299fa7917486c"
+      ]
+    ]
+  },
+  {
+    "id": "d9c299fa7917486c",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta OPTIONS",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1430,
+    "wires": []
+  },
+  {
+    "id": "6f35c5b056fa47c0",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "CORS OPTIONS /eventos/turno",
+    "url": "/eventos/turno",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1495,
+    "wires": [
+      [
+        "12d73b9cebe947e6"
+      ]
+    ]
+  },
+  {
+    "id": "12d73b9cebe947e6",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Responder preflight CORS",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=204; msg.payload=''; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 1495,
+    "wires": [
+      [
+        "c1d22f404caa4423"
+      ]
+    ]
+  },
+  {
+    "id": "c1d22f404caa4423",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta OPTIONS",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1495,
+    "wires": []
+  },
+  {
+    "id": "3fec0785332e4bac",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "CORS OPTIONS /eventos/partida-finalizada",
+    "url": "/eventos/partida-finalizada",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1560,
+    "wires": [
+      [
+        "eb27aaa1df084a05"
+      ]
+    ]
+  },
+  {
+    "id": "eb27aaa1df084a05",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Responder preflight CORS",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=204; msg.payload=''; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 1560,
+    "wires": [
+      [
+        "5d74f611e060418f"
+      ]
+    ]
+  },
+  {
+    "id": "5d74f611e060418f",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta OPTIONS",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1560,
+    "wires": []
+  },
+  {
+    "id": "d794c8eeba2a46e8",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "CORS OPTIONS /api/partidas",
+    "url": "/api/partidas",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1625,
+    "wires": [
+      [
+        "314e7d56733c49b1"
+      ]
+    ]
+  },
+  {
+    "id": "314e7d56733c49b1",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Responder preflight CORS",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=204; msg.payload=''; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 1625,
+    "wires": [
+      [
+        "00cab809754942c4"
+      ]
+    ]
+  },
+  {
+    "id": "00cab809754942c4",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta OPTIONS",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1625,
+    "wires": []
+  },
+  {
+    "id": "eb2401ab7d724e4f",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "CORS OPTIONS /api/partidas/:id",
+    "url": "/api/partidas/:id",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1690,
+    "wires": [
+      [
+        "f8b26595216b40af"
+      ]
+    ]
+  },
+  {
+    "id": "f8b26595216b40af",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Responder preflight CORS",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=204; msg.payload=''; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 1690,
+    "wires": [
+      [
+        "75eed73edf8642f5"
+      ]
+    ]
+  },
+  {
+    "id": "75eed73edf8642f5",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta OPTIONS",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1690,
+    "wires": []
+  },
+  {
+    "id": "5e7ae25f5c4842e6",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "CORS OPTIONS /api/partidas/:id/turnos",
+    "url": "/api/partidas/:id/turnos",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1755,
+    "wires": [
+      [
+        "af490ad60c8743d5"
+      ]
+    ]
+  },
+  {
+    "id": "af490ad60c8743d5",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Responder preflight CORS",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=204; msg.payload=''; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 1755,
+    "wires": [
+      [
+        "625d9f7b7bdd4465"
+      ]
+    ]
+  },
+  {
+    "id": "625d9f7b7bdd4465",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta OPTIONS",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1755,
+    "wires": []
+  },
+  {
+    "id": "6469e0ff43734942",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "CORS OPTIONS /api/estatisticas",
+    "url": "/api/estatisticas",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1820,
+    "wires": [
+      [
+        "5db6986e6d63411a"
+      ]
+    ]
+  },
+  {
+    "id": "5db6986e6d63411a",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Responder preflight CORS",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=204; msg.payload=''; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 1820,
+    "wires": [
+      [
+        "4692008c7c40445f"
+      ]
+    ]
+  },
+  {
+    "id": "4692008c7c40445f",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta OPTIONS",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1820,
+    "wires": []
+  },
+  {
+    "id": "f39a50fff35e4a55",
+    "type": "http in",
+    "z": "0cda26428b7e4b89",
+    "name": "CORS OPTIONS /health",
+    "url": "/health",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 1885,
+    "wires": [
+      [
+        "96bf0f61df524538"
+      ]
+    ]
+  },
+  {
+    "id": "96bf0f61df524538",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Responder preflight CORS",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nsetJsonHeaders(msg); msg.statusCode=204; msg.payload=''; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 340,
+    "y": 1885,
+    "wires": [
+      [
+        "4b7f3796ac504f9d"
+      ]
+    ]
+  },
+  {
+    "id": "4b7f3796ac504f9d",
+    "type": "http response",
+    "z": "0cda26428b7e4b89",
+    "name": "Resposta OPTIONS",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1885,
+    "wires": []
+  },
+  {
+    "id": "e92b485c1afe433c",
+    "type": "inject",
+    "z": "0cda26428b7e4b89",
+    "name": "Criar tabelas no deploy",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 100,
+    "y": 50,
+    "wires": [
+      [
+        "f08dff1cc53f4919"
+      ]
+    ]
+  },
+  {
+    "id": "f08dff1cc53f4919",
+    "type": "function",
+    "z": "0cda26428b7e4b89",
+    "name": "Carregar schema.sql",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}); return msg; }\nmsg.topic = \"PRAGMA foreign_keys = ON;\\n\\nCREATE TABLE IF NOT EXISTS partidas (\\n    id_partida INTEGER PRIMARY KEY,\\n    jogador TEXT NOT NULL,\\n    personagem TEXT NOT NULL DEFAULT 'Skatista',\\n    id_desafiante INTEGER NOT NULL DEFAULT 1,\\n    id_oponente INTEGER NOT NULL DEFAULT 4,\\n    id_vencedor INTEGER,\\n    status TEXT NOT NULL DEFAULT 'Em Andamento'\\n        CHECK (status IN ('Em Andamento', 'Finalizada', 'Abandonada')),\\n    hp_player INTEGER NOT NULL DEFAULT 100 CHECK (hp_player >= 0),\\n    hp_mendigo INTEGER NOT NULL DEFAULT 100 CHECK (hp_mendigo >= 0),\\n    data_inicio TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),\\n    data_fim TEXT\\n);\\n\\nCREATE TABLE IF NOT EXISTS turnos (\\n    id_turno INTEGER PRIMARY KEY AUTOINCREMENT,\\n    id_partida INTEGER NOT NULL,\\n    numero_turno INTEGER NOT NULL CHECK (numero_turno > 0),\\n    id_personagem_atuante INTEGER NOT NULL,\\n    tipo_acao TEXT NOT NULL,\\n    id_item_utilizado INTEGER,\\n    valor_impacto REAL NOT NULL DEFAULT 0 CHECK (valor_impacto >= 0),\\n    hp_player INTEGER NOT NULL DEFAULT 0 CHECK (hp_player >= 0),\\n    hp_mendigo INTEGER NOT NULL DEFAULT 0 CHECK (hp_mendigo >= 0),\\n    data_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),\\n    FOREIGN KEY (id_partida) REFERENCES partidas(id_partida) ON DELETE CASCADE,\\n    UNIQUE (id_partida, numero_turno)\\n);\\n\\nCREATE INDEX IF NOT EXISTS idx_partidas_data_inicio\\n    ON partidas(data_inicio DESC);\\nCREATE INDEX IF NOT EXISTS idx_partidas_jogador\\n    ON partidas(jogador);\\nCREATE INDEX IF NOT EXISTS idx_turnos_partida_numero\\n    ON turnos(id_partida, numero_turno);\\n\\nCREATE VIEW IF NOT EXISTS vw_estatisticas_jogadores AS\\nSELECT\\n    jogador,\\n    COUNT(*) AS total_partidas,\\n    SUM(CASE WHEN status = 'Finalizada' AND id_vencedor = 1 THEN 1 ELSE 0 END) AS vitorias,\\n    SUM(CASE WHEN status = 'Finalizada' AND id_vencedor = 4 THEN 1 ELSE 0 END) AS derrotas,\\n    MAX(data_inicio) AS ultima_partida\\nFROM partidas\\nGROUP BY jogador;\\n\"; return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 330,
+    "y": 50,
+    "wires": [
+      [
+        "e04dd9775d8749c2"
+      ]
+    ]
+  },
+  {
+    "id": "e04dd9775d8749c2",
+    "type": "sqlite",
+    "z": "0cda26428b7e4b89",
+    "mydb": "6d6f432ea7b24b02",
+    "sqlquery": "batch",
+    "sql": "",
+    "name": "Executar schema.sql",
+    "x": 560,
+    "y": 50,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "450dbe3c88904d8a",
+    "type": "catch",
+    "z": "0cda26428b7e4b89",
+    "name": "Erros do fluxo / SQLite",
+    "scope": null,
+    "uncaught": false,
+    "x": 100,
+    "y": 2040,
+    "wires": [
+      [
+        "e371e5c7828b4691"
+      ]
+    ]
+  },
+  {
+    "id": "e371e5c7828b4691",
+    "type": "debug",
+    "z": "0cda26428b7e4b89",
+    "name": "Detalhes do erro",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 340,
+    "y": 2040,
+    "wires": []
+  }
+]

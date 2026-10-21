@@ -1,0 +1,888 @@
+[
+  {
+    "id": "esquina_fatal_tab",
+    "type": "tab",
+    "label": "Esquina Fatal - Banco e API",
+    "disabled": false,
+    "info": "API de gravação das partidas e turnos do jogo Esquina Fatal."
+  },
+  {
+    "id": "ef_sqlite_db",
+    "type": "sqlitedb",
+    "db": "esquina_fatal.db",
+    "mode": "RWC"
+  },
+  {
+    "id": "ef_0001",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "Criar partida",
+    "url": "/eventos/partida-iniciada",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 150,
+    "wires": [
+      [
+        "ef_0002"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0002",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Validar e preparar: Criar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nconst d = msg.payload || {};\n  const safeText = (v, fallback, max) => {\n    const s = String(v == null ? '' : v).trim().slice(0, max);\n    return (s || fallback).replace(/'/g, \"''\");\n  };\n  const safeInt = (v, fallback) => {\n    const n = Number(v);\n    return Number.isSafeInteger(n) && n >= 0 ? n : fallback;\n  };\n  const idPartida = Date.now() * 1000 + Math.floor(Math.random() * 1000);\n  const jogador = safeText(d.jogador, 'Skatista', 40);\n  const personagem = safeText(d.personagem, jogador.replace(/''/g, \"'\"), 40);\n  const desafiante = safeInt(d.id_desafiante, 1);\n  const oponente = safeInt(d.id_oponente, 4);\n  const status = 'Em Andamento';\n  const hpPlayer = safeInt(d.hp_player, 100);\n  const hpMendigo = safeInt(d.hp_mendigo, 100);\n  msg.dadosPartida = { id_partida: idPartida, jogador: jogador.replace(/''/g, \"'\"), personagem: personagem.replace(/''/g, \"'\"), id_desafiante: desafiante, id_oponente: oponente, status: status, hp_player: hpPlayer, hp_mendigo: hpMendigo };\n  msg.topic = \"INSERT INTO partidas (id_partida, jogador, personagem, id_desafiante, id_oponente, status, hp_player, hp_mendigo) VALUES (\" +\n    idPartida + \", '\" + jogador + \"', '\" + personagem + \"', \" + desafiante + \", \" + oponente + \", '\" + status + \"', \" + hpPlayer + \", \" + hpMendigo + \")\";\n  return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 150,
+    "wires": [
+      [
+        "ef_0003"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0003",
+    "type": "sqlite",
+    "z": "esquina_fatal_tab",
+    "mydb": "ef_sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Criar partida",
+    "x": 540,
+    "y": 150,
+    "wires": [
+      [
+        "ef_0004"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0004",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Montar resposta: Criar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n  msg.statusCode = 201;\n  msg.payload = { ok: true, id_partida: msg.dadosPartida.id_partida, mensagem: 'Partida registrada.' };\n  return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 740,
+    "y": 150,
+    "wires": [
+      [
+        "ef_0005"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0005",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta HTTP: Criar partida",
+    "statusCode": "",
+    "headers": {},
+    "x": 940,
+    "y": 150,
+    "wires": []
+  },
+  {
+    "id": "ef_0006",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "Registrar turno",
+    "url": "/eventos/turno",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 290,
+    "wires": [
+      [
+        "ef_0007"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0007",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Validar e preparar: Registrar turno",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nconst d = msg.payload || {};\n  const intOrNull = (v) => {\n    if (v === null || v === undefined || v === '') return null;\n    const n = Number(v);\n    return Number.isSafeInteger(n) ? n : null;\n  };\n  const idPartida = intOrNull(d.id_partida);\n  const numeroTurno = intOrNull(d.numero_turno);\n  const personagem = intOrNull(d.id_personagem_atuante);\n  if (!idPartida || idPartida < 1 || !numeroTurno || numeroTurno < 1 || personagem === null || personagem < 0) {\n    setJsonHeaders(msg);\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'Campos obrigatórios inválidos: id_partida, numero_turno e id_personagem_atuante.' };\n    return [null, msg];\n  }\n  const safeText = (v) => String(v == null ? '' : v).slice(0, 80).replace(/'/g, \"''\");\n  const item = intOrNull(d.id_item_utilizado);\n  const impactoN = Number(d.valor_impacto);\n  const impacto = Number.isFinite(impactoN) ? Math.max(0, Math.min(1000000, impactoN)) : 0;\n  const hpPlayerN = Number(d.hp_player);\n  const hpMendigoN = Number(d.hp_mendigo);\n  const hpPlayer = Number.isFinite(hpPlayerN) ? Math.max(0, Math.min(1000000, Math.trunc(hpPlayerN))) : 0;\n  const hpMendigo = Number.isFinite(hpMendigoN) ? Math.max(0, Math.min(1000000, Math.trunc(hpMendigoN))) : 0;\n  const tipo = safeText(d.tipo_acao || 'Ação');\n  msg.dadosTurno = { id_partida: idPartida, numero_turno: numeroTurno };\n  msg.topic = \"INSERT INTO turnos (id_partida, numero_turno, id_personagem_atuante, tipo_acao, id_item_utilizado, valor_impacto, hp_player, hp_mendigo) VALUES (\" +\n    idPartida + \", \" + numeroTurno + \", \" + personagem + \", '\" + tipo + \"', \" + (item === null ? 'NULL' : item) + \", \" + impacto + \", \" + hpPlayer + \", \" + hpMendigo + \")\";\n  return [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 290,
+    "wires": [
+      [
+        "ef_0008"
+      ],
+      [
+        "ef_0010"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0008",
+    "type": "sqlite",
+    "z": "esquina_fatal_tab",
+    "mydb": "ef_sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Registrar turno",
+    "x": 540,
+    "y": 290,
+    "wires": [
+      [
+        "ef_0009"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0009",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Montar resposta: Registrar turno",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n  msg.statusCode = 201;\n  msg.payload = { ok: true, id_partida: msg.dadosTurno.id_partida, numero_turno: msg.dadosTurno.numero_turno, mensagem: 'Turno registrado.' };\n  return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 740,
+    "y": 290,
+    "wires": [
+      [
+        "ef_0010"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0010",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta HTTP: Registrar turno",
+    "statusCode": "",
+    "headers": {},
+    "x": 940,
+    "y": 290,
+    "wires": []
+  },
+  {
+    "id": "ef_0011",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "Finalizar partida",
+    "url": "/eventos/partida-finalizada",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 430,
+    "wires": [
+      [
+        "ef_0012"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0012",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Validar e preparar: Finalizar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nconst d = msg.payload || {};\n  const idPartida = Number(d.id_partida);\n  if (!Number.isSafeInteger(idPartida) || idPartida < 1) {\n    setJsonHeaders(msg);\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'id_partida inválido.' };\n    return [null, msg];\n  }\n  const winnerN = (d.id_vencedor === null || d.id_vencedor === undefined || d.id_vencedor === '') ? null : Number(d.id_vencedor);\n  const winner = (winnerN === 1 || winnerN === 4) ? winnerN : null;\n  const status = ['Finalizada', 'Abandonada', 'Em Andamento'].indexOf(String(d.status || 'Finalizada')) >= 0 ? String(d.status || 'Finalizada') : 'Finalizada';\n  const safeInt = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(1000000, Math.trunc(n))) : 0; };\n  const hpPlayer = safeInt(d.hp_player);\n  const hpMendigo = safeInt(d.hp_mendigo);\n  const dateRaw = String(d.data_fim || new Date().toISOString()).slice(0, 40).replace(/'/g, \"''\");\n  msg.dadosFinal = { id_partida: idPartida, id_vencedor: winner, status: status, hp_player: hpPlayer, hp_mendigo: hpMendigo };\n  msg.topic = \"UPDATE partidas SET id_vencedor=\" + (winner === null ? 'NULL' : winner) + \", status='\" + status + \"', hp_player=\" + hpPlayer + \", hp_mendigo=\" + hpMendigo + \", data_fim='\" + dateRaw + \"' WHERE id_partida=\" + idPartida;\n  return [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 430,
+    "wires": [
+      [
+        "ef_0013"
+      ],
+      [
+        "ef_0015"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0013",
+    "type": "sqlite",
+    "z": "esquina_fatal_tab",
+    "mydb": "ef_sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Finalizar partida",
+    "x": 540,
+    "y": 430,
+    "wires": [
+      [
+        "ef_0014"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0014",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Montar resposta: Finalizar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n  msg.statusCode = 200;\n  msg.payload = { ok: true, id_partida: msg.dadosFinal.id_partida, mensagem: 'Partida finalizada.' };\n  return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 740,
+    "y": 430,
+    "wires": [
+      [
+        "ef_0015"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0015",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta HTTP: Finalizar partida",
+    "statusCode": "",
+    "headers": {},
+    "x": 940,
+    "y": 430,
+    "wires": []
+  },
+  {
+    "id": "ef_0016",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "Consultar partida",
+    "url": "/eventos/partida/:id",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 570,
+    "wires": [
+      [
+        "ef_0017"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0017",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Validar e preparar: Consultar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nconst n = Number(msg.req && msg.req.params && msg.req.params.id);\n  if (!Number.isSafeInteger(n) || n < 1) {\n    setJsonHeaders(msg);\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'ID da partida inválido.' };\n    return [null, msg];\n  }\n  msg.idConsulta = n;\n  msg.topic = 'SELECT * FROM partidas WHERE id_partida=' + n;\n  return [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 570,
+    "wires": [
+      [
+        "ef_0018"
+      ],
+      [
+        "ef_0020"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0018",
+    "type": "sqlite",
+    "z": "esquina_fatal_tab",
+    "mydb": "ef_sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Consultar partida",
+    "x": 540,
+    "y": 570,
+    "wires": [
+      [
+        "ef_0019"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0019",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Montar resposta: Consultar partida",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n  const rows = Array.isArray(msg.payload) ? msg.payload : [];\n  if (!rows.length) {\n    msg.statusCode = 404;\n    msg.payload = { ok: false, error: 'Partida não encontrada.' };\n  } else {\n    msg.statusCode = 200;\n    msg.payload = { ok: true, partida: rows[0] };\n  }\n  return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 740,
+    "y": 570,
+    "wires": [
+      [
+        "ef_0020"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0020",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta HTTP: Consultar partida",
+    "statusCode": "",
+    "headers": {},
+    "x": 940,
+    "y": 570,
+    "wires": []
+  },
+  {
+    "id": "ef_0021",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "Consultar turnos",
+    "url": "/eventos/partida/:id/turnos",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 710,
+    "wires": [
+      [
+        "ef_0022"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0022",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Validar e preparar: Consultar turnos",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nconst n = Number(msg.req && msg.req.params && msg.req.params.id);\n  if (!Number.isSafeInteger(n) || n < 1) {\n    setJsonHeaders(msg);\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: 'ID da partida inválido.' };\n    return [null, msg];\n  }\n  msg.idConsulta = n;\n  msg.topic = 'SELECT * FROM turnos WHERE id_partida=' + n + ' ORDER BY numero_turno ASC';\n  return [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 710,
+    "wires": [
+      [
+        "ef_0023"
+      ],
+      [
+        "ef_0025"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0023",
+    "type": "sqlite",
+    "z": "esquina_fatal_tab",
+    "mydb": "ef_sqlite_db",
+    "sqlquery": "msg.topic",
+    "sql": "",
+    "name": "SQLite: Consultar turnos",
+    "x": 540,
+    "y": 710,
+    "wires": [
+      [
+        "ef_0024"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0024",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Montar resposta: Consultar turnos",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n  msg.statusCode = 200;\n  msg.payload = { ok: true, id_partida: msg.idConsulta, turnos: Array.isArray(msg.payload) ? msg.payload : [] };\n  return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 740,
+    "y": 710,
+    "wires": [
+      [
+        "ef_0025"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0025",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta HTTP: Consultar turnos",
+    "statusCode": "",
+    "headers": {},
+    "x": 940,
+    "y": 710,
+    "wires": []
+  },
+  {
+    "id": "ef_0026",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "Verificar API",
+    "url": "/health",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 870,
+    "wires": [
+      [
+        "ef_0027"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0027",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta de saúde",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n  msg.statusCode = 200;\n  msg.payload = { ok: true, servico: 'Esquina Fatal API', status: 'online' };\n  return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 870,
+    "wires": [
+      [
+        "ef_0028"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0028",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta health",
+    "statusCode": "",
+    "headers": {},
+    "x": 570,
+    "y": 870,
+    "wires": []
+  },
+  {
+    "id": "ef_0029",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "CORS OPTIONS /eventos/partida-iniciada",
+    "url": "/eventos/partida-iniciada",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 970,
+    "wires": [
+      [
+        "ef_0030"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0030",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Responder CORS /eventos/partida-iniciada",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n    msg.statusCode = 204;\n    msg.payload = '';\n    return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 970,
+    "wires": [
+      [
+        "ef_0031"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0031",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta OPTIONS /eventos/partida-iniciada",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 970,
+    "wires": []
+  },
+  {
+    "id": "ef_0032",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "CORS OPTIONS /eventos/turno",
+    "url": "/eventos/turno",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 1030,
+    "wires": [
+      [
+        "ef_0033"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0033",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Responder CORS /eventos/turno",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n    msg.statusCode = 204;\n    msg.payload = '';\n    return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1030,
+    "wires": [
+      [
+        "ef_0034"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0034",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta OPTIONS /eventos/turno",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1030,
+    "wires": []
+  },
+  {
+    "id": "ef_0035",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "CORS OPTIONS /eventos/partida-finalizada",
+    "url": "/eventos/partida-finalizada",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 1090,
+    "wires": [
+      [
+        "ef_0036"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0036",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Responder CORS /eventos/partida-finalizada",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n    msg.statusCode = 204;\n    msg.payload = '';\n    return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1090,
+    "wires": [
+      [
+        "ef_0037"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0037",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta OPTIONS /eventos/partida-finalizada",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1090,
+    "wires": []
+  },
+  {
+    "id": "ef_0038",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "CORS OPTIONS /eventos/partida/:id",
+    "url": "/eventos/partida/:id",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 1150,
+    "wires": [
+      [
+        "ef_0039"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0039",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Responder CORS /eventos/partida/:id",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n    msg.statusCode = 204;\n    msg.payload = '';\n    return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1150,
+    "wires": [
+      [
+        "ef_0040"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0040",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta OPTIONS /eventos/partida/:id",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1150,
+    "wires": []
+  },
+  {
+    "id": "ef_0041",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "CORS OPTIONS /eventos/partida/:id/turnos",
+    "url": "/eventos/partida/:id/turnos",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 1210,
+    "wires": [
+      [
+        "ef_0042"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0042",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Responder CORS /eventos/partida/:id/turnos",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n    msg.statusCode = 204;\n    msg.payload = '';\n    return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1210,
+    "wires": [
+      [
+        "ef_0043"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0043",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta OPTIONS /eventos/partida/:id/turnos",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1210,
+    "wires": []
+  },
+  {
+    "id": "ef_0044",
+    "type": "http in",
+    "z": "esquina_fatal_tab",
+    "name": "CORS OPTIONS /health",
+    "url": "/health",
+    "method": "options",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 110,
+    "y": 1270,
+    "wires": [
+      [
+        "ef_0045"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0045",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Responder CORS /health",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n    msg.statusCode = 204;\n    msg.payload = '';\n    return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1270,
+    "wires": [
+      [
+        "ef_0046"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0046",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta OPTIONS /health",
+    "statusCode": "",
+    "headers": {},
+    "x": 590,
+    "y": 1270,
+    "wires": []
+  },
+  {
+    "id": "ef_0047",
+    "type": "inject",
+    "z": "esquina_fatal_tab",
+    "name": "Criar tabelas do banco",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "0.5",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 110,
+    "y": 60,
+    "wires": [
+      [
+        "ef_0048"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0048",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Carregar schema.sql",
+    "func": "msg.topic = \"PRAGMA foreign_keys = ON;\\n\\nCREATE TABLE IF NOT EXISTS partidas (\\n    id_partida INTEGER PRIMARY KEY,\\n    jogador TEXT NOT NULL,\\n    personagem TEXT NOT NULL,\\n    id_desafiante INTEGER NOT NULL DEFAULT 1,\\n    id_oponente INTEGER NOT NULL DEFAULT 4,\\n    id_vencedor INTEGER,\\n    status TEXT NOT NULL DEFAULT 'Em Andamento',\\n    hp_player INTEGER NOT NULL DEFAULT 100,\\n    hp_mendigo INTEGER NOT NULL DEFAULT 100,\\n    data_inicio TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\\n    data_fim TEXT\\n);\\n\\nCREATE TABLE IF NOT EXISTS turnos (\\n    id_turno INTEGER PRIMARY KEY AUTOINCREMENT,\\n    id_partida INTEGER NOT NULL,\\n    numero_turno INTEGER NOT NULL,\\n    id_personagem_atuante INTEGER NOT NULL,\\n    tipo_acao TEXT NOT NULL,\\n    id_item_utilizado INTEGER,\\n    valor_impacto REAL NOT NULL DEFAULT 0,\\n    hp_player INTEGER NOT NULL DEFAULT 0,\\n    hp_mendigo INTEGER NOT NULL DEFAULT 0,\\n    data_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\\n    FOREIGN KEY (id_partida) REFERENCES partidas(id_partida) ON DELETE CASCADE,\\n    UNIQUE (id_partida, numero_turno)\\n);\\n\\nCREATE INDEX IF NOT EXISTS idx_partidas_data_inicio ON partidas(data_inicio);\\nCREATE INDEX IF NOT EXISTS idx_turnos_partida_numero ON turnos(id_partida, numero_turno);\\n\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 300,
+    "y": 60,
+    "wires": [
+      [
+        "ef_0049"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0049",
+    "type": "sqlite",
+    "z": "esquina_fatal_tab",
+    "mydb": "ef_sqlite_db",
+    "sqlquery": "batch",
+    "sql": "",
+    "name": "Executar schema.sql",
+    "x": 520,
+    "y": 60,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "ef_0050",
+    "type": "catch",
+    "z": "esquina_fatal_tab",
+    "name": "Capturar erros do fluxo",
+    "scope": null,
+    "uncaught": false,
+    "x": 110,
+    "y": 1370,
+    "wires": [
+      [
+        "ef_0051"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0051",
+    "type": "function",
+    "z": "esquina_fatal_tab",
+    "name": "Responder erro em JSON",
+    "func": "function setJsonHeaders(msg) { msg.headers = Object.assign({}, msg.headers, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' }); return msg; }\nsetJsonHeaders(msg);\n  msg.statusCode = 500;\n  const text = msg.error && msg.error.message ? msg.error.message : 'Falha desconhecida no fluxo/banco SQLite.';\n  msg.payload = { ok: false, error: text };\n  return msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1370,
+    "wires": [
+      [
+        "ef_0052"
+      ]
+    ]
+  },
+  {
+    "id": "ef_0052",
+    "type": "http response",
+    "z": "esquina_fatal_tab",
+    "name": "Resposta de erro",
+    "statusCode": "",
+    "headers": {},
+    "x": 570,
+    "y": 1370,
+    "wires": []
+  }
+]
